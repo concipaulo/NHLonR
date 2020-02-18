@@ -1,0 +1,44 @@
+Rk -- Rank
+Goalie Stats
+GP -- Games Played
+GS -- Games Started
+W -- Wins
+L -- Losses
+T/O -- Ties plus Overtime/Shootout Losses
+GA -- Goals Against
+Shot Data
+SA -- Shots Against
+Goalie Stats
+SV -- Saves
+Shot Data
+SV% -- Save Percentage
+Goalie Stats
+GAA -- Goals Against Average
+SO -- Shutouts
+Point Shares
+GPS -- Goalie Point Shares; an estimate of the number of points contributed by
+a player due to his play in goal.
+Goalie Stats
+MIN -- Minutes
+QS -- Quality Starts
+Starts with SV% > average SV% for the year, or at least 88.5% on nights with 20
+or fewer shots against.
+Developed by Rob Vollman in the Hockey Abstract.
+QS% -- Quality Start Percentage
+QS/GS
+> 60% Good, < 50% Bad, ~53% League Avg
+Developed by Rob Vollman in the Hockey Abstract.
+RBS -- Really Bad Starts
+Starts with a SV% below 85%.
+Developed by Rob Vollman in the Hockey Abstract
+GA%- -- GA Pct- is goals allowed % relative to league goals allowed %
+Lower is better, 100 is exactly average, 0 means you have saved 100% of shots
+faced. Min. 4 shots faced per team game needed to qualify.
+GSAA -- Goals Saved Above Average, the goals this goalie prevented given his
+save percentage and shots faced vs. the league average save percentage on the
+same number of shots. Min. 4 shots faced per team game needed to qualify.
+Scoring
+G -- Goals
+A -- Assists
+PTS -- Points
+PIM -- Penalties in Minutes
