@@ -61,7 +61,7 @@ df$Year <- as.factor(df$Year)
 
 # Cleaning teams name and creating the playoff variable ----
 df$Playoff <- (rep("NO", nrow(df)))
-df$Playoff[which(df$Year == "2020")] <- NA
+df$Playoff[which(df$Year == "2020")] <- "2019-20"
 
 # regular expression to match any playoff teams
 rexp <- "[\\w .]+[ ](\\w)*[*]"
@@ -86,12 +86,15 @@ names(df)[names(df) == 'V61'] <- 'Div'
 names(df)[names(df) == 'V62'] <- 'Team'
 
 # analysing data, managing variables ----
-str(df)
 df$Playoff <- as.factor(df$Playoff)
 df$Rk <- as.factor(df$Rk)
 df$Teams <- as.factor(df$Teams)
+# creating a new variable called season
+df$Season <- ifelse(df$Year == "2020", '2020', '2014-2019')
 
-# Plottling ----
+
+str(df)
+
 # basics ====
 plot(df$Team, df$PTS.)
 
@@ -116,16 +119,15 @@ ggplot(df, aes(PTS, SV.)) +
 clean <- theme(
   panel.grid = element_blank(),
   panel.background = element_rect(fill = "white"),
-  panel.border = element_rect(color = "black", fill = "NA", size = 0.2),
+  panel.border = element_rect(color = "black", fill = "2019-20", size = 0.2),
   plot.title = element_text(hjust = 0.5),
   axis.text = element_text(size = 12),
   legend.position = "none"
 )
 
-# creating a new variable called season
-df$Season <- ifelse(df$Year == "2020", '2020', '2014-2019')
 
 # plotting PTS% in function of vitories ----
+
 ggplot(df, aes(W, PTS., fill = Season)) +
   theme_ft_rc() +
   geom_point(
@@ -137,8 +139,12 @@ ggplot(df, aes(W, PTS., fill = Season)) +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2") +
   ylab("PTS%") +
   ggtitle("PTS% in function of victories since 2013-14") +
-  labs(caption = "Source: hockey-reference.com, 02-15-2020") +
-  scale_fill_viridis_d()
+  labs(caption = "Source: hockey-reference.com, 02-18-2020") +
+  scale_fill_viridis_d()+
+  geom_label(data=df %>% filter(Team == "TOR" & Year == "2020")
+             ,aes(label=Team),
+             nudge_x = - 1.5,
+             show.legend = FALSE)
 
 ggsave(
   "victories_to_ptspercent.png",
@@ -148,8 +154,12 @@ ggsave(
 )
 
 # plot winninf in function of PTS
-ggplot(df, aes(W, PTS, col = Playoff)) +
-  geom_point() +
+ggplot(df, aes(W, PTS, col = Playoff, fill=Play)) +
+  geom_point(shape = 21,
+    size = 2,
+    show.legend = T, 
+    alpha=0.5
+    ) +
   theme_ft_rc() +
   scale_fill_viridis_d() +
   ylab("PTS") +
@@ -165,7 +175,7 @@ ggsave(
 # verifying the correlation between the two variables
 cor(df$W, df$PTS., method = "pearson")
 
-dplyr::filter(df, Playoff != "NA") %>%
+dplyr::filter(df, Playoff != "2019-20") %>%
   ggplot(aes(OL, PTS., col = Playoff, fill = Playoff)) +
   geom_point(shape = 21, size = 2,) +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2") +
@@ -184,7 +194,7 @@ ggsave(
 model_points_wins <- lm(W ~ PTS., df)
 summary(model_points_wins)
 
-dplyr::filter(df, Playoff != "NA") %>%
+dplyr::filter(df, Playoff != "2019-20") %>%
   ggplot(aes(Playoff, PTS)) +
   geom_bar(stat = "summary", fun.y = "mean") +
   geom_point(position = position_jitter(), col = "orangered") +
@@ -199,7 +209,7 @@ ggsave(
   dpi = "retina"
 )
 
-dplyr::filter(df, Playoff != "NA") %>%
+dplyr::filter(df, Playoff != "2019-20") %>%
   ggplot(aes(as.factor(Div), PTS., col = Playoff)) +
   geom_boxplot(alpha = 0) +
   theme_ft_rc() +
@@ -216,7 +226,7 @@ ggsave(
 )
 
 # Goals ----
-dplyr::filter(df, Playoff != "NA") %>%
+dplyr::filter(df, Playoff != "2019-20") %>%
   ggplot(aes(S, GF)) +
   geom_point(shape = 21, size = 2, fill = "Yellow") +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2") +
@@ -233,7 +243,7 @@ dplyr::filter(df, Playoff != "NA") %>%
     dpi = "retina"
   )
 
-dplyr::filter(df, Playoff != "NA") %>%
+dplyr::filter(df, Playoff != "2019-20") %>%
   ggplot(aes(S., GF)) +
   geom_point(shape = 21, size = 2, fill = "Yellow") +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2") +
@@ -251,7 +261,7 @@ dplyr::filter(df, Playoff != "NA") %>%
 
 cor(df$S., df$GF, method = "pearson")
 
-dplyr::filter(df, Playoff != "NA") %>%
+dplyr::filter(df, Playoff != "2019-20") %>%
   ggplot(aes(S., W, col = Playoff)) +
   geom_point(shape = 21, size = 2, fill = "Yellow") +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2") +
@@ -268,7 +278,7 @@ summary(df$S.)
 cor(df$S., df$W, method = "pearson")
 
 # Powerplay ----
-dplyr::filter(df, Playoff != "NA") %>%
+dplyr::filter(df, Playoff != "2019-20") %>%
   ggplot(aes(PPO, GF)) +
   geom_point(shape = 21, size = 2, fill = "Yellow") +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2") +
@@ -513,3 +523,53 @@ ggsave("pts_2020.png",
        width = 10,
        height = 6,
        dpi = "retina")
+
+# Analising teams defensive stats ----
+
+df$TGEV.G <- (df$EVGA + df$EVGF)/df$GP
+
+ggplot(df, aes(W, PTS., fill = Season)) +
+  theme_ft_rc() +
+  geom_point(
+    data = df,
+    shape = 21,
+    size = 2,
+    show.legend = T
+  ) +
+  geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2") +
+  ylab("PTS%") +
+  ggtitle("PTS% in function of victories since 2013-14") +
+  labs(caption = "Source: hockey-reference.com, 02-18-2020") +
+  scale_fill_viridis_d()+
+  geom_label(data=df %>% filter(Team == "TOR" & Year == "2020")
+             ,aes(label=Team),
+             nudge_x = - 1.5,
+             show.legend = FALSE)
+
+ggsave(
+  "victories_to_ptspercent.png",
+  width = 10,
+  height = 6,
+  dpi = "retina"
+)
+
+# plot winninf in function of PTS
+
+ggplot(df, aes(GA, PTS, col = Playoff, fill=Playoff)) +
+  geom_point(shape = 21,
+    size = 3,
+    show.legend = T, 
+    alpha=0.5
+    ) +
+  theme_ft_rc() +
+  scale_fill_viridis_d() +
+  ylab("PTS") +
+  labs(caption = "Source: hockey-reference.com, 02-18-2020") +
+  ggtitle("PTS in function of victories since 2013-14")
+
+ggsave(
+  "GA_to_pts.png",
+  width = 10,
+  height = 6,
+  dpi = "retina"
+)
