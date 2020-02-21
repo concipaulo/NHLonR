@@ -1,3 +1,4 @@
+# !diagnostics off
 # load packages ----
 Packages <- c(
   "dplyr",
@@ -57,6 +58,9 @@ df <-
     )
   )
 
+df <- data.frame(df)
+df <- tbl_df(df) # dplyr local data frame
+
 df$Year <- as.factor(df$Year)
 
 # Cleaning teams name and creating the playoff variable ----
@@ -69,6 +73,9 @@ rexp <- "[\\w .]+[ ](\\w)*[*]"
 df$Playoff[which(str_detect(df$Teams, rexp))] <- "YES"
 # cleaning teams names ----
 df$Teams <- str_remove_all(df$Teams, "[*]")
+
+teams_abrv <- as.data.frame(teams_abrv)
+df <- as.data.frame(df)
 
 # Joinning data frames ----
 for (i in 1:nrow(df)) {
@@ -528,7 +535,8 @@ ggsave("pts_2020.png",
 
 df$TGEV.G <- (df$EVGA + df$EVGF)/df$GP
 
-ggplot(df, aes(W, PTS., fill = Season)) +
+df %>%
+ggplot(aes(TGEV.G, TG.G, fill = Season)) +
   theme_ft_rc() +
   geom_point(
     data = df,
@@ -537,14 +545,23 @@ ggplot(df, aes(W, PTS., fill = Season)) +
     show.legend = T
   ) +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2") +
-  ylab("PTS%") +
+  xlab("TGEV.G")+
+  ylab("TG.G") +
   ggtitle("PTS% in function of victories since 2013-14") +
   labs(caption = "Source: hockey-reference.com, 02-18-2020") +
   scale_fill_viridis_d()+
+  geom_label(col = "purple", data=df %>% filter(TG.G <= "5.5" & Year == "2020")
+             ,aes(label=Team),
+             # nudge_x = - 1.5,
+             nudge_y = - 0.2,
+             show.legend = FALSE
+  )+ 
   geom_label(data=df %>% filter(Team == "TOR" & Year == "2020")
              ,aes(label=Team),
-             nudge_x = - 1.5,
-             show.legend = FALSE)
+             # nudge_x = - 1.5,
+             nudge_y = - 0.2,
+             show.legend = FALSE
+  )
 
 ggsave(
   "victories_to_ptspercent.png",
@@ -565,10 +582,211 @@ ggplot(df, aes(GA, PTS, col = Playoff, fill=Playoff)) +
   scale_fill_viridis_d() +
   ylab("PTS") +
   labs(caption = "Source: hockey-reference.com, 02-18-2020") +
-  ggtitle("PTS in function of victories since 2013-14")
+  ggtitle("PTS in Function of Goals Allowed since 2013-14")+
+  geom_label(fill = "black", data=df %>% filter(Team == "TOR" & Year == "2020")
+             ,aes(label=Team),
+             # nudge_x = - 1.5,
+             nudge_y = 4,
+             show.legend = FALSE
+  )
 
 ggsave(
   "GA_to_pts.png",
+  width = 10,
+  height = 6,
+  dpi = "retina"
+)
+
+# losses per game played 
+
+df$lep <- (df$L + df$OL)/df$GP
+
+df%>%
+ggplot(aes(L, lep, col = Playoff, fill=Playoff)) +
+  geom_point(shape = 21,
+    size = 3,
+    show.legend = T, 
+    alpha=0.5
+    ) +
+  scale_x_continuous(trans = "reverse")+
+  scale_y_continuous(trans = "reverse")+
+  geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2") +
+  theme_ft_rc() +
+  scale_fill_viridis_d() +
+  xlab("Losses") +
+  ylab("Losses %") +
+  labs(caption = "Source: hockey-reference.com, 02-18-2020") +
+  ggtitle("PTS% in Function of Losses per Game since 2013-14")+
+  geom_label(fill = "black", data=df %>% filter(Team == "TOR" & Year == "2020")
+             ,aes(label=Team),
+             # nudge_x = - 1.5,
+             nudge_y = 0.02,
+             show.legend = FALSE
+  )+
+  geom_label(fill = "black", data=df %>% filter(lep <= "0.4" & Year == "2020")
+             ,aes(label=Team),
+             # nudge_x = - 1.5,
+             nudge_y = 0.05,
+             show.legend = FALSE
+  )
+
+ggsave(
+  "pts_to_lep.png",
+  width = 10,
+  height = 6,
+  dpi = "retina"
+)
+cor(df$PTS., df$lep)
+
+df$TGA.G <- df$GA/df$GP
+
+df%>%
+ggplot(aes(W, TGA.G, col = Playoff, fill=Playoff)) +
+  geom_point(shape = 21,
+    size = 3,
+    show.legend = T, 
+    alpha=0.5
+    ) +
+
+  geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2") +
+  theme_ft_rc() +
+  scale_fill_viridis_d() +
+  xlab("Wins") +
+  ylab("TGA/G") +
+  labs(caption = "Source: hockey-reference.com, 02-18-2020") +
+  ggtitle("TGA/G in Function of Victories since 2013-14")+
+  geom_label(fill = "black", data=df %>% filter(Team == "TOR" & Year == "2020")
+             ,aes(label=Team),
+             # nudge_x = - 1.5,
+             nudge_y = 0.1,
+             show.legend = FALSE
+  )+
+  geom_label(fill = "black", data=df %>% filter(TGA.G <= "2.6" & Year == "2020")
+             ,aes(label=Team),
+             # nudge_x = - 1.5,
+             nudge_y = 0.1,
+             show.legend = FALSE
+  )
+
+ggsave(
+  "goals_allow_victory.png",
+  width = 10,
+  height = 6,
+  dpi = "retina"
+)
+
+df$TGF.G  <- df$GF/df$GP
+
+df%>%
+ggplot(aes(W, TGF.G, col = Playoff, fill=Playoff)) +
+  geom_point(shape = 21,
+    size = 3,
+    show.legend = T, 
+    alpha=0.5
+    ) +
+  #scale_x_continuous(trans = "reverse")+
+  #scale_y_continuous(trans = "reverse")+
+  geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2", se=F) +
+  theme_ft_rc() +
+  scale_fill_viridis_d() +
+  xlab("Wins") +
+  ylab("TGF/G") +
+  labs(caption = "Source: hockey-reference.com, 02-18-2020") +
+  ggtitle("TGF/G in Function of Victories since 2013-14")+
+  # geom_label(fill = "black", data=df %>% filter(Team == "TOR" & Year == "2020")
+  #            ,aes(label=Team),
+  #            # nudge_x = - 1.5,
+  #            nudge_y = 0.1,
+  #            show.legend = FALSE
+  # )+
+  geom_label(fill = "black", data=df %>% filter(TGF.G >= "3.5" & Year == "2020")
+             ,aes(label=Team),
+             # nudge_x = - 1.5,
+             nudge_y = 0.1,
+             show.legend = FALSE
+  )
+
+ggsave(
+  "goals_allow_victory.png",
+  width = 10,
+  height = 6,
+  dpi = "retina"
+)
+
+# advanced stats where recorded only from 2016-17 forward. ----
+df.2017 <- df%>%
+  filter(as.character(Year) >= "2017")
+
+df.2017%>%
+ggplot(aes(W, CF., col = Playoff, fill=Playoff)) +
+  geom_point(shape = 21,
+    size = 3,
+    show.legend = T, 
+    alpha=0.5
+    ) +
+  #scale_x_continuous(trans = "reverse")+
+  #scale_y_continuous(trans = "reverse")+
+  geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2", se=F) +
+  theme_ft_rc() +
+  scale_fill_viridis_d() +
+  xlab("Wins") +
+  ylab("CF %") +
+  labs(caption = "Source: hockey-reference.com, 02-18-2020") +
+  ggtitle("CF% in Function of Victories since 2013-14")+
+  # geom_label(fill = "black", data=df %>% filter(Team == "TOR" & Year == "2020")
+  #            ,aes(label=Team),
+  #            # nudge_x = - 1.5,
+  #            nudge_y = 0.1,
+  #            show.legend = FALSE
+  # )+
+  geom_label(fill = "black", data=df.2017 %>% filter(CF. >= "53" & Year == "2020")
+             ,aes(label=Team),
+             # nudge_x = - 1.5,
+             nudge_y = - 0.5,
+             show.legend = FALSE
+  )
+
+ggsave(
+  "corsipct_victory.png",
+  width = 10,
+  height = 6,
+  dpi = "retina"
+)
+
+
+df.2017%>%
+ggplot(aes(W, PDO, col = Playoff, fill=Playoff)) +
+  geom_point(shape = 21,
+    size = 3,
+    show.legend = T, 
+    alpha=0.5
+    ) +
+  #scale_x_continuous(trans = "reverse")+
+  #scale_y_continuous(trans = "reverse")+
+  geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2", se=F) +
+  theme_ft_rc() +
+  scale_fill_viridis_d() +
+  xlab("Wins") +
+  ylab("PDO") +
+  labs(caption = "Source: hockey-reference.com, 02-18-2020") +
+  ggtitle("PDO in Function of Victories since 2016-17")+
+  # geom_label(fill = "black", data=df %>% filter(Team == "TOR" & Year == "2020")
+  #            ,aes(label=Team),
+  #            # nudge_x = - 1.5,
+  #            nudge_y = 0.1,
+  #            show.legend = FALSE
+  # )+
+  geom_label(fill = "black", data=df.2017 %>% filter(PDO >= 101 & Year == "2020")
+             ,aes(label=Team),
+             # nudge_x = - 1.5,
+             nudge_y = - 0.3,
+             show.legend = FALSE
+  )
+
+cor(df.2017$W, df.2017$PDO)
+
+ggsave(
+  "pdo_victory.png",
   width = 10,
   height = 6,
   dpi = "retina"
