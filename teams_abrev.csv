@@ -1,33 +1,33 @@
-"Teams","Team","Div","Conf"
-"Boston Bruins","BOS","ATLANTIC","EASTERN"
-"Nashville Predators","NSH","CENTRAL","WESTERN"
-"New York Rangers","NYR","METROPOLITAN","EASTERN"
-"Tampa Bay Lightning","TBL","ATLANTIC","EASTERN"
-"Washington Capitals","WSH","METROPOLITAN","EASTERN"
-"Anaheim Ducks","ANA","PACIFIC","WESTERN"
-"Dallas Stars","DAL","CENTRAL","WESTERN"
-"Montreal Canadiens","MTL","ATLANTIC","EASTERN"
-"Pittsburgh Penguins","PIT","METROPOLITAN","EASTERN"
-"Winnipeg Jets","WPG","CENTRAL","WESTERN"
-"Calgary Flames","CGY","PACIFIC","WESTERN"
-"Chicago Blackhawks","CHI","CENTRAL","WESTERN"
-"Colorado Avalanche","COL","CENTRAL","WESTERN"
-"St. Louis Blues","STL","CENTRAL","WESTERN"
-"Columbus Blue Jackets","CBJ","METROPOLITAN","EASTERN"
-"Minnesota Wild","MIN","CENTRAL","WESTERN"
-"New York Islanders","NYI","METROPOLITAN","EASTERN"
-"San Jose Sharks","SJS","PACIFIC","WESTERN"
-"Vegas Golden Knights","VGK","PACIFIC","WESTERN"
-"Toronto Maple Leafs","TOR","ATLANTIC","EASTERN"
-"Edmonton Oilers","EDM","PACIFIC","WESTERN"
-"Florida Panthers","FLA","ATLANTIC","EASTERN"
-"Los Angeles Kings","LAK","PACIFIC","WESTERN"
-"Vancouver Canucks","VAN","PACIFIC","WESTERN"
-"Philadelphia Flyers","PHI","METROPOLITAN","EASTERN"
-"Detroit Red Wings","DET","ATLANTIC","EASTERN"
-"Carolina Hurricanes","CAR","METROPOLITAN","EASTERN"
-"Ottawa Senators","OTT","ATLANTIC","EASTERN"
-"New Jersey Devils","NJD","METROPOLITAN","EASTERN"
-"Arizona Coyotes","ARI","PACIFIC","WESTERN"
-"Phoenix Coyotes","PHO","PACIFIC","WESTERN"
-"Buffalo Sabres","BUF","ATLANTIC","EASTERN"
+Teams,Team,Div,Conf,City
+Anaheim Ducks,ANA,PACIFIC,WESTERN,Anaheim; California
+Arizona Coyotes,ARI,PACIFIC,WESTERN,Glendale; Arizona
+Boston Bruins,BOS,ATLANTIC,EASTERN,Boston; Massachusetts
+Buffalo Sabres,BUF,ATLANTIC,EASTERN,Buffalo; New York
+Calgary Flames,CGY,PACIFIC,WESTERN,Calgary; Alberta
+Carolina Hurricanes,CAR,METROPOLITAN,EASTERN,Raleigh; North Carolina
+Chicago Blackhawks,CHI,CENTRAL,WESTERN,Chicago; Illinois
+Colorado Avalanche,COL,CENTRAL,WESTERN,Denver; Colorado
+Columbus Blue Jackets,CBJ,METROPOLITAN,EASTERN,Columbus; Ohio
+Dallas Stars,DAL,CENTRAL,WESTERN,Dallas; Texas
+Detroit Red Wings,DET,ATLANTIC,EASTERN,Detroit; Michigan
+Edmonton Oilers,EDM,PACIFIC,WESTERN,Edmonton; Alberta
+Florida Panthers,FLA,ATLANTIC,EASTERN,Sunrise; Florida
+Los Angeles Kings,LAK,PACIFIC,WESTERN,Los Angeles; California
+Minnesota Wild,MIN,CENTRAL,WESTERN,Saint Paul; Minnesota
+Montreal Canadiens,MTL,ATLANTIC,EASTERN,Montreal; Quebec
+Nashville Predators,NSH,CENTRAL,WESTERN,Nashville; Tennessee
+New Jersey Devils,NJD,METROPOLITAN,EASTERN,Newark; New Jersey
+New York Islanders,NYI,METROPOLITAN,EASTERN,New York; New York
+New York Rangers,NYR,METROPOLITAN,EASTERN,Uniondale; New York
+Ottawa Senators,OTT,ATLANTIC,EASTERN,Ottawa; Ontario
+Philadelphia Flyers,PHI,METROPOLITAN,EASTERN,Philadelphia; Pennsylvania
+Phoenix Coyotes,PHO,PACIFIC,WESTERN,Phoenix; Arizona
+Pittsburgh Penguins,PIT,METROPOLITAN,EASTERN,Pittsburgh; Pennsylvania
+San Jose Sharks,SJS,PACIFIC,WESTERN,San Jose; California
+St. Louis Blues,STL,CENTRAL,WESTERN,St. Louis; Missouri
+Tampa Bay Lightning,TBL,ATLANTIC,EASTERN,Tampa; Florida
+Toronto Maple Leafs,TOR,ATLANTIC,EASTERN,Toronto; Ontario
+Vancouver Canucks,VAN,PACIFIC,WESTERN,Vancouver; British Columbia
+Vegas Golden Knights,VGK,PACIFIC,WESTERN,Paradise; Nevada
+Washington Capitals,WSH,METROPOLITAN,EASTERN,Washington; D.C.
+Winnipeg Jets,WPG,CENTRAL,WESTERN,Winnipeg; Manitoba

@@ -1,8 +1,14 @@
-.Rproj.user
+.Rproj.user/*
 .Rhistory
 .RData
 .Ruserdata
 plots/
 *.Rproj
 *.user
-NHLschedulescraper/plots/
+NHLschedulescraper/plots/*
+NHLschedulescraper/Data/*
+NHLschedulescraper/Old/*
+NHLschedulescraper/*.png
+NHLschedulescraper/Player\ Analysis/Data/*
+NHLschedulescraper/Player\ Analysis/plots/*
+*.gif
