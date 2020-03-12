@@ -1,9 +1,10 @@
-# !diagnostics off
+#! diagnostics off
 # load packages ----
-Packages <- c("ggthemes","stringr","ggrepel","ggExtra","viridis",
+Packages <- c("ggthemes","ggrepel","ggExtra","viridis",
               "gridExtra","ggthemr","hrbrthemes","tidyverse", "gghighlight")
 invisible(lapply(Packages, library, character.only = TRUE))
 
+# Functions
 setenv <- function(){
 teamcolors <<- c("#b5985a", "#8c2633", "#fcb514", "#002654", "#ce1126", "#76232F", "#cc8a00", "#6f263d",
             "#041e42", "#006341", "#c8102e", "#fc4c02", "#b9975b", "#a2aaad", "#154734", "#a6192e",
@@ -20,144 +21,119 @@ nhlteams <<- c("anaheim-ducks","phoenix-coyotes", "boston-bruins", "buffalo-sabr
              "vegas-golden-knights", "washington-capitals", "winnipeg-jets")
 
 
-teams_abrv <- read.csv("~/NHLonR/teams_abrev.csv", stringsAsFactors = F)
-teams_abrv <<- as_tibble(teams_abrv)
+#teams_abrv <- read.csv("~/NHLonR/teams_abrev.csv", stringsAsFactors = F)
+#teams_abrv <- as_tibble(teams_abrv)
 datetoday <<- Sys.Date()
-reference <<- sprintf("Source: www.quanthockey.com, %s", datetoday)
+reference <<- sprintf("Source: www.hockey-reference.com, %s", datetoday)
 
 }
 
-# loading data ----
-teams_2014 <- read.csv("teams_2014.csv")
-teams_2015 <- read.csv("teams_2015.csv")
-teams_2016 <- read.csv("teams_2016.csv")
-teams_2017 <- read.csv("teams_2017.csv")
-teams_2018 <- read.csv("teams_2018.csv")
-teams_2019 <- read.csv("teams_2019.csv")
-teams_2020 <- read.csv("teams_2020.csv")
-teams_abrv <- read.csv("teams_abrev.csv")
-statshead <- c("Teams","AvAge","GP","W","L","OL","PTS","PTS.","GF","GA","SOW",
-               "SOL","SRS","SOS","TGpG","EVGF","EVGA","PP","PPO","PP.","PPA","PPOA",
-               "PK.","SH","SHA","PIMpG","oPIMpG","S","S.","SA","SV.","SO","EVS.",
-               "EVSV.","EVPDO","EVCF","EVCA","EVCF.","EVFF","EVFA","EVFF.",
-               "EVxGF","EVxGA","EVaGF","EVaGA","EVaxDiff","EVSCF","EVSCA",
-               "EVSCF.","EVHDF","EVHDA","EVHDF.","EVHDGF","EVHDC.","EVHDGA",
-               "EVHDCO.")
-
-colnames(teams_2014) <- statshead
-colnames(teams_2015) <- statshead
-colnames(teams_2016) <- statshead
-colnames(teams_2017) <- statshead
-colnames(teams_2018) <- statshead
-colnames(teams_2019) <- statshead
-colnames(teams_2020) <- statshead
-
-# add year, we have to put manually because the data was scrapped over the
-# years
-teams_2014$Year <- cbind(Year = rep(2014, nrow(teams_2014)))
-teams_2015$Year <- cbind(Year = rep(2015, nrow(teams_2015)))
-teams_2016$Year <- cbind(Year = rep(2016, nrow(teams_2016)))
-teams_2017$Year <- cbind(Year = rep(2017, nrow(teams_2017)))
-teams_2018$Year <- cbind(Year = rep(2018, nrow(teams_2018)))
-teams_2019$Year <- cbind(Year = rep(2019, nrow(teams_2019)))
-teams_2020$Year <- cbind(Year = rep(2020, nrow(teams_2020)))
-
-
-# creating data frame ----
-df <- do.call("rbind", list(teams_2014, teams_2015, teams_2016, teams_2017,
-      teams_2018,teams_2019))
-
-write_csv(df, "teams2014-2019rs.csv")
-
-df <- as_tibble(df)
-#df <- data.frame(df)
-df$Year <- as.factor(df$Year)
-
-# Cleaning teams name and creating the playoff variable ----
-df$Playoff <- (rep("NO", nrow(df)))
-df$Playoff[which(df$Year == "2020")] <- "2019-20"
-
-# regular expression to match any playoff teams
-rexp <- "[\\w .]+[ ](\\w)*[*]"
-df$Playoff[which(str_detect(df$Teams, rexp))] <- "YES"
-# cleaning teams names ----
-df$Teams <- str_remove_all(df$Teams, "[*]")
-
-teams_abrv <- as_tibble(teams_abrv)
-
-# Joinning data frames ----
-for (i in 1:nrow(df)) {
-  for (j in 1:nrow(teams_abrv)) {
-    if (df[i, 1] == teams_abrv[j, 1]) {
-      df[i, 59] <- teams_abrv[j, 4]
-      df[i, 60] <- teams_abrv[j, 3]
-      df[i, 61] <- teams_abrv[j, 2]
+loaddata <- function() {
+  teams_1419 <- read.csv("teams2014-2019rs.csv")
+  teams_2020 <- read.csv("teams_2020.csv")
+  teams_abrv <- read.csv("teams_abrev.csv")
+  
+  # creating data frame ----
+  df <- do.call("rbind", list(teams_1419, teams_2020))
+  
+  df <- as_tibble(df)
+  #df <- data.frame(df)
+  df$Year <- as.factor(df$Year)
+  
+  # Cleaning teams name and creating the playoff variable ----
+  df$Playoff <- (rep("NO", nrow(df)))
+  df$Playoff[which(df$Year == "2020")] <- "2019-20"
+  
+  # regular expression to match any playoff teams
+  rexp <- "[\\w .]+[ ](\\w)*[*]"
+  df$Playoff[which(str_detect(df$Teams, rexp))] <- "YES"
+  # cleaning teams names ----
+  df$Teams <- str_remove_all(df$Teams, "[*]")
+  
+  teams_abrv <- as_tibble(teams_abrv)
+  
+  # Joinning data frames ----
+  for (i in 1:nrow(df)) {
+    for (j in 1:nrow(teams_abrv)) {
+      if (df[i, 1] == teams_abrv[j, 1]) {
+        df[i, 59] <- teams_abrv[j, 4]
+        df[i, 60] <- teams_abrv[j, 3]
+        df[i, 61] <- teams_abrv[j, 2]
+      }
     }
   }
+  # renaming columns names ----
+  #names(df)[names(df) == 'V59'] <- 'Conf'
+  #names(df)[names(df) == 'V60'] <- 'Div'
+  #names(df)[names(df) == 'V61'] <- 'Team'
+  
+  # analysing data, managing variables ----
+  df$Playoff <- as.factor(df$Playoff)
+  #df$Teams <- as.factor(df$Teams)
+  
+  # creating a new variable called season
+  df$Season <- ifelse(df$Year == "2020", '2020', '2014-2019')
+  df$Season <- as.factor(df$Season)
+  df$Team[which(df$Team == "PHO")] <- "ARI"
+  
+  dataset <<- df
+  
 }
-# renaming columns names ----
-#names(df)[names(df) == 'V59'] <- 'Conf'
-#names(df)[names(df) == 'V60'] <- 'Div'
-#names(df)[names(df) == 'V61'] <- 'Team'
 
-# analysing data, managing variables ----
-df$Playoff <- as.factor(df$Playoff)
-df$Teams <- as.factor(df$Teams)
+# Calls
+setenv()
 
-# creating a new variable called season
-df$Season <- ifelse(df$Year == "2020", '2020', '2014-2019')
-df$Season <- as.factor(df$Season)
-df$Team[which(df$Team == "PHO")] <- "ARI"
+loaddata()
 
 # basics ====
-plot(df$Team, df$PTS.)
+plot(dataset$Team, dataset$PTS.)
 
 # ggplot ----
-ggplot(df, aes(as.factor(Div), PTS., col = Playoff)) +
+ggplot(dataset, aes(as.factor(Div), PTS., col = Playoff)) +
   geom_boxplot()
 
 # creating a linear regression model
-plot(df$PTS, df$SV.)
-modsvpt <- lm(PTS ~ SV., df)
+plot(dataset$PTS, dataset$SV.)
+modsvpt <- lm(PTS ~ SV., dataset)
 
 plot(modsvpt)
 
 # linear regression on ggplot
-ggplot(df, aes(PTS, SV.)) +
+ggplot(dataset, aes(PTS, SV.)) +
   geom_point() +
   geom_smooth(method = "lm")
 
 # creating a theme plot ----
-clean <- theme(
-  panel.grid = element_blank(),
-  panel.background = element_rect(fill = "white"),
-  panel.border = element_rect(color = "black", fill = "2019-20", size = 0.2),
-  plot.title = element_text(hjust = 0.5),
-  axis.text = element_text(size = 12),
-  legend.position = "none"
-)
+# clean <- theme(
+#   panel.grid = element_blank(),
+#   panel.background = element_rect(fill = "white"),
+#   panel.border = element_rect(color = "black", fill = "2019-20", size = 0.2),
+#   plot.title = element_text(hjust = 0.5),
+#   axis.text = element_text(size = 12),
+#   legend.position = "none"
+# )
 
 
 # plotting PTS% in function of vitories ----
 
-ggplot(df, aes(W, PTS.)) +
+ggplot(dataset, aes(W, PTS.)) +
   theme_ipsum_rc() +
   geom_point(
-    data = df,
+    data = dataset,
     aes(fill = Season, col = Season),
     shape = 21,
     size = 7,
     show.legend = T,
     alpha = 0.6
   ) +
-  geom_smooth(data = filter(df, Season == "2014-2019"), method = "lm", col = "firebrick", se = F) +
+  geom_smooth(data = filter(dataset, Season == "2014-2019"), method = "lm", col = "firebrick", se = F) +
   ylab("PTS%") +
   labs(title = "PTS% in function of victories", subtitle = "since 2013-14",
        caption = paste0("Source: hockey-reference.com ", datetoday)) +
   scale_color_wsj(palette = "rgby")
   #gghighlight(Team == "TOR", Year == "2020")
   #scale_fill_viridis_d()+
-  # geom_label(fill = "white", data=df %>% filter(Team == "TOR" & Year == "2020")
+  # geom_label(fill = "white", data=dataset %>% filter(Team == "TOR" & Year == "2020")
   #            ,aes(label=Team),
   #            nudge_y = 0.02,
   #            show.legend = FALSE)
@@ -169,7 +145,7 @@ ggsave(
   dpi = 600
 )
 
-ggplot(df, aes(Team, PTS.)) +
+ggplot(dataset, aes(Team, PTS.)) +
   geom_boxplot()+
   theme_ipsum_rc() +
   ylab("PTS%") +
@@ -185,7 +161,7 @@ ggsave(
 
 
 # plot winninf in function of PTS
-ggplot(df, aes(W, PTS, col = Playoff, fill=Playoff)) +
+ggplot(dataset, aes(W, PTS, col = Playoff, fill=Playoff)) +
   geom_point(shape = 20,
     size = 7,
     show.legend = T, 
@@ -206,9 +182,9 @@ ggsave(
 )
 
 # verifying the correlation between the two variables
-cor(df$W, df$PTS., method = "pearson")
+cor(dataset$W, dataset$PTS., method = "pearson")
 
-dplyr::filter(df, Playoff != "2019-20") %>%
+dplyr::filter(dataset, Playoff != "2019-20") %>%
   ggplot(aes(OL, PTS., col = Playoff, fill = Playoff)) +
   geom_point(shape = 21, size = 7, alpha = 0.6) +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2", se = F) +
@@ -226,10 +202,10 @@ ggsave(
   dpi = 600
 )
 
-model_points_wins <- lm(W ~ PTS., df)
+model_points_wins <- lm(W ~ PTS., dataset)
 summary(model_points_wins)
 
-dplyr::filter(df, Playoff != "2019-20") %>%
+dplyr::filter(dataset, Playoff != "2019-20") %>%
   ggplot(aes(Playoff, PTS)) +
   geom_bar(stat = "summary", fun.y = "mean") +
   geom_point(position = position_jitter(), col = "firebrick", size = 7) +
@@ -247,7 +223,7 @@ ggsave(
   dpi = 600
 )
 
-dplyr::filter(df, Year != 2020) %>% 
+dplyr::filter(dataset, Year != 2020) %>% 
   ggplot(aes(as.factor(Div), PTS., col = Playoff)) +
   geom_boxplot(alpha = 1) +
   theme_ipsum_rc(grid = "X,Y") +
@@ -266,7 +242,7 @@ ggsave(
 )
 
 # Goals ----
-dplyr::filter(df, Playoff != "2019-20") %>%
+dplyr::filter(dataset, Playoff != "2019-20") %>%
   ggplot(aes(S, GF)) +
   geom_point(shape = 21, size = 7, aes(fill = Season), alpha = 0.6) +
   geom_smooth(method = "lm", col = "firebrick", se =F) +
@@ -285,7 +261,7 @@ dplyr::filter(df, Playoff != "2019-20") %>%
     dpi = 600
   )
 
-dplyr::filter(df, Playoff != "2019-20") %>%
+dplyr::filter(dataset, Playoff != "2019-20") %>%
   ggplot(aes(S./100, GF)) +
   geom_point(shape = 21, size = 7, aes(fill = Season), alpha = 0.6) +
   geom_smooth(method = "lm", col = "firebrick", se =F) +
@@ -305,9 +281,9 @@ dplyr::filter(df, Playoff != "2019-20") %>%
     dpi = 600
   )
 
-cor(df$S., df$GF, method = "pearson")
+cor(dataset$S., dataset$GF, method = "pearson")
 
-dplyr::filter(df, Playoff != "2019-20") %>%
+dplyr::filter(dataset, Playoff != "2019-20") %>%
   ggplot(aes(S./100, W)) +
   geom_point(shape = 21, size = 7, aes(fill = Playoff, col = Playoff), alpha = 0.6) +
   geom_smooth(method = "lm", col = "firebrick", se =F) +
@@ -324,12 +300,12 @@ dplyr::filter(df, Playoff != "2019-20") %>%
     paste0("plots/wins_to_shpct ", datetoday, " .png"),
          width = 11, height = 6, dpi =600)
 
-hist(df$S.)
-summary(df$S.)
-cor(df$S., df$W, method = "pearson")
+hist(dataset$S.)
+summary(dataset$S.)
+cor(dataset$S., dataset$W, method = "pearson")
 
 # Powerplay ----
-dplyr::filter(df, Playoff != "2019-20") %>%
+dplyr::filter(dataset, Playoff != "2019-20") %>%
   ggplot(aes(PPO, GF)) +
   geom_point(shape = 21, size = 7, aes(fill = Season, col = Season), alpha = 0.6) +
   geom_smooth(method = "lm", col = "firebrick", se =F) +
@@ -346,11 +322,11 @@ dplyr::filter(df, Playoff != "2019-20") %>%
          paste0("plots/ppo_to_goals ", datetoday, " .png"),
          width = 11, height = 6, dpi =600)
 
-cor(df$PPO, df$GF)
-hist(df$oPIM.G)
+cor(dataset$PPO, dataset$GF)
+hist(dataset$oPIM.G)
 
 
-dplyr::filter(df, Playoff != "2019-20") %>%
+dplyr::filter(dataset, Playoff != "2019-20") %>%
   mutate(ppgoalpergame = PP / GP) %>% 
   ggplot(aes(oPIMpG, ppgoalpergame)) +
   geom_point(shape = 21, size = 7, aes(fill = Season, col = Season), alpha = 0.6) +
@@ -368,13 +344,13 @@ ggsave(
        paste0("plots/ppg_to_opim ", datetoday, " .png"),
          width = 11, height = 6, dpi =600)
 
-cor(df$oPIMpG, ppgoalpergame)
+cor(dataset$oPIMpG, ppgoalpergame)
 mean(ppgoalpergame)
-mean(df$PP / df$GP)
+mean(dataset$PP / dataset$GP)
 mean(teams_2019$PP.)
 
 
-ggplot(df, aes(Team, oPIMpG)) +
+ggplot(dataset, aes(Team, oPIMpG)) +
   geom_bar(
     stat = "summary",
     fun.y = "mean",
@@ -391,7 +367,7 @@ ggsave(
        paste0("plots/opim_per_team ", datetoday, " .png"),
          width = 11, height = 6, dpi =600)
 
-df%>%
+dataset%>%
   group_by(Team) %>% 
   summarise(opimg = mean(oPIMpG), pimg = mean(PIMpG)) %>% 
   mutate(pim = opimg - pimg,
@@ -417,7 +393,7 @@ ggsave(
 # really necessary?
 
 
-df %>%
+dataset %>%
   mutate(goaldif = GF - GA)%>%
   ggplot(aes(Team, goaldif, fill = as.factor(Year), label = goaldif)) +
   geom_bar(stat = "identity",
@@ -440,7 +416,7 @@ ggsave(
 
 
 
-df %>%
+dataset %>%
   mutate(shotdif = S - SA)%>%
   ggplot(aes(Team, shotdif, fill = as.factor(Year), label = shotdif)) +
   geom_bar(stat = "identity",
@@ -462,7 +438,7 @@ ggsave(
        paste0("plots/shotdif_2020 ", datetoday, " .png"),
          width = 11, height = 6, dpi =600)
 
-df %>%
+dataset %>%
   filter(Playoff != "2019-20") %>% 
   mutate(shotdif = S - SA, goaldif = GF - GA)%>%
   ggplot(aes(shotdif, goaldif)) +
@@ -483,9 +459,9 @@ ggsave(
   width = 11, height = 6, dpi =600)
 
 
-#df.w <- aggregate(W ~ Div, df, mean)
+#dataset.w <- aggregate(W ~ Div, dataset, mean)
 # the above do the same as group_by and summarise
-df%>%
+dataset%>%
   group_by(Div)%>%
   summarise(victories = mean(W))%>%
   ggplot(aes(Div, victories, label = round(victories, 2))) +
@@ -505,7 +481,7 @@ ggsave(
 
 
 
-ggplot(df, aes(PIMpG)) +
+ggplot(dataset, aes(PIMpG)) +
   geom_histogram(fill = "steelblue",
                  col = "deepskyblue",
                  bins = 15) +
@@ -519,7 +495,7 @@ ggsave(
  paste0("plots/mean_penalty_minutes ", datetoday, " .png"),
   width = 11, height = 6, dpi =600)
 
-ggplot(df, aes(PPA)) +
+ggplot(dataset, aes(PPA)) +
   geom_histogram(fill = "steelblue",
                  col = "deepskyblue",
                  bins = 15) +
@@ -533,10 +509,10 @@ ggsave(
   paste0("plots/mean_short_goals ", datetoday, " .png"),
   width = 11, height = 6, dpi =600)
 
-mean(df$PPA)
+mean(dataset$PPA)
 
 # Points total ----
-df %>%
+dataset %>%
   ggplot(aes(Team, PTS, fill = Year)) +
   geom_bar(stat = "identity",
            position = "dodge",
@@ -558,10 +534,10 @@ ggsave(
 
 # Analising teams defensive stats ----
 # you have to include a new column if you want to put label in it 
-df$tgevg<- (df$EVGA + df$EVGF)/df$GP
-df$tgevg
+dataset$tgevg<- (dataset$EVGA + dataset$EVGF)/dataset$GP
+dataset$tgevg
 
-df%>%
+dataset%>%
   ggplot(aes(tgevg, TGpG)) +
   geom_point(shape = 21, size = 7, aes(fill = Season, col = Season), alpha = 0.6) +
   geom_smooth(method = "lm", col = "firebrick", se =F) +
@@ -574,7 +550,7 @@ df%>%
   labs(title = "Total Goals in function of Total Goals Even Strength", subtitle = "since 2013-14",
        caption = paste0("Source: hockey-reference.com ", datetoday))
   scale_fill_viridis_d()+
-  geom_label(data = df%>%filter(tgevg >= 5.0 & Year == "2020"),aes(label = Team) )
+  geom_label(data = dataset%>%filter(tgevg >= 5.0 & Year == "2020"),aes(label = Team) )
    
 ggsave(
   "plots/victories_to_ptspercent.png",
@@ -585,7 +561,7 @@ ggsave(
 
 # plot winninf in function of PTS
 
-ggplot(df, aes(GA, PTS, col = Playoff, fill=Playoff)) +
+ggplot(dataset, aes(GA, PTS, col = Playoff, fill=Playoff)) +
   geom_point(shape = 21,
     size = 3,
     show.legend = T, 
@@ -596,7 +572,7 @@ ggplot(df, aes(GA, PTS, col = Playoff, fill=Playoff)) +
   ylab("PTS") +
   labs(caption = "Source: hockey-reference.com, 02-18-2020") +
   ggtitle("PTS in Function of Goals Allowed since 2013-14")+
-  geom_label(fill = "black", data=df %>% filter(Team == "TOR" & Year == "2020")
+  geom_label(fill = "black", data=dataset %>% filter(Team == "TOR" & Year == "2020")
              ,aes(label=Team),
              # nudge_x = - 1.5,
              nudge_y = 4,
@@ -613,9 +589,9 @@ ggsave(
 # losses per game played 
 # you have to include a new column if you want to put label in it
 # only if you want to label with
-df$lep <- (df$L + df$OL)/df$GP
+dataset$lep <- (dataset$L + dataset$OL)/dataset$GP
 
-df %>%
+dataset %>%
     ggplot(aes(W, lep, col = Playoff, fill = Playoff)) +
     geom_point(shape = 21,size = 4, show.legend = T,alpha = 0.5) +
     geom_smooth(method = "lm",col = "deepskyblue",fill = "deepskyblue2",se = F) +
@@ -625,16 +601,16 @@ df %>%
     ylab("Losses %") +
     labs(caption = "Source: hockey-reference.com, 02-18-2020") +
     ggtitle("PTS% in Function of Losses per Game since 2013-14")+
-    geom_label_repel(fill = "black",data = df %>% filter(Team == "TOR" & Year == "2020"),
+    geom_label_repel(fill = "black",data = dataset %>% filter(Team == "TOR" & Year == "2020"),
                     aes(label = Team),nudge_y = 0.02,show.legend = FALSE)
     
 ggsave("plots/pts_to_lep.png",width = 10,height = 6,dpi = 600)
 
-cor(df$PTS., df$lep)
+cor(dataset$PTS., dataset$lep)
 
-df$TGApG <- df$GA/df$GP
+dataset$TGApG <- dataset$GA/dataset$GP
 
-df%>%
+dataset%>%
   ggplot(aes(W, TGApG, col = Playoff, fill=Playoff)) +
   geom_point(shape = 21, size = 4, show.legend = T, alpha=0.95) +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2", se = F) +
@@ -644,19 +620,19 @@ df%>%
   ylab("TGA/G") +
   labs(caption = "Source: hockey-reference.com, 02-18-2020") +
   ggtitle("TGA/G in Function of Victories since 2013-14")+
-  geom_label(fill = "black", data=df %>% filter(Team == "TOR" & Year == "2020")
+  geom_label(fill = "black", data=dataset %>% filter(Team == "TOR" & Year == "2020")
              ,aes(label=Team), show.legend = FALSE,
              nudge_y = 0.07)+
-  geom_label(fill = "black", data=df %>% filter(TGApG <= "2.6" & Year == "2020")
+  geom_label(fill = "black", data=dataset %>% filter(TGApG <= "2.6" & Year == "2020")
              ,aes(label=Team),show.legend = FALSE,
              nudge_y = 0.07)
 
 
 ggsave("plots/goals_allow_victory.png",width = 10,height = 6,dpi = 600)
 
-df$TGFpG  <- df$GF/df$GP
+dataset$TGFpG  <- dataset$GF/dataset$GP
 
-df%>%
+dataset%>%
 ggplot(aes(W, TGFpG, col = Playoff, fill=Playoff)) +
   geom_point(shape = 21,size = 4,show.legend = T, alpha=0.99) +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2", se=F) +
@@ -666,14 +642,14 @@ ggplot(aes(W, TGFpG, col = Playoff, fill=Playoff)) +
   ylab("TGF/G") +
   labs(caption = "Source: hockey-reference.com, 02-18-2020") +
   ggtitle("TGF/G in Function of Victories since 2013-14")+
-  geom_label(fill = "black", data=df %>% filter(TGFpG >= "3.5" & Year == "2020")
+  geom_label(fill = "black", data=dataset %>% filter(TGFpG >= "3.5" & Year == "2020")
              ,aes(label=Team),nudge_y = 0.1,show.legend = FALSE)
 
 ggsave("plots/goals_allow_victory.png",width = 10,height = 6,dpi = 600)
 
 # advanced stats where recorded only from 2016-17 forward. ----
 
-df%>%filter(as.character(Year) >= "2017")%>%  
+dataset%>%filter(as.character(Year) >= "2017")%>%  
 ggplot(aes(W, EVCF., col = Playoff, fill=Playoff)) +
   geom_point(shape = 21,size = 4,show.legend = T, alpha=0.99) +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2", se=F) +
@@ -683,13 +659,13 @@ ggplot(aes(W, EVCF., col = Playoff, fill=Playoff)) +
   ylab("CF %") +
   labs(caption = "Source: hockey-reference.com, 02-18-2020") +
   ggtitle("CF% in Function of Victories since 2013-14")+
-  geom_label(fill = "black", data=df%>% filter(EVCF. >= "53" & Year == "2020")
+  geom_label(fill = "black", data=dataset%>% filter(EVCF. >= "53" & Year == "2020")
              ,aes(label=Team),nudge_y = - 0.5,show.legend = FALSE)
 
 ggsave("plots/corsipct_victory.png",width = 10,height = 6,dpi = 600)
 
 
-df%>%filter(as.character(Year) >= "2017")%>%  
+dataset%>%filter(as.character(Year) >= "2017")%>%  
 ggplot(aes(W, EVPDO, col = Playoff, fill = Playoff)) +
   geom_point(shape = 21, size = 4, show.legend = T, alpha=0.99) +
   geom_smooth(method = "lm",col = "deepskyblue", fill = "deepskyblue2", se=F) +
@@ -701,19 +677,19 @@ ggplot(aes(W, EVPDO, col = Playoff, fill = Playoff)) +
   ylab("PDO") +
   labs(caption = "Source: hockey-reference.com, 02-18-2020") +
   ggtitle("PDO in Function of Victories since 2016-17")+
-  geom_label_repel(fill = "black", data=df %>% filter(EVPDO < 99 & Playoff == "YES")
+  geom_label_repel(fill = "black", data=dataset %>% filter(EVPDO < 99 & Playoff == "YES")
              ,aes(label = paste(Team, Year)),
              nudge_x = - 1.5,
              nudge_y = -0.3,
              show.legend = FALSE
   )+
-  geom_label_repel(fill = "black", data=df %>% filter(EVPDO >= 101 & Year == "2020")
+  geom_label_repel(fill = "black", data=dataset %>% filter(EVPDO >= 101 & Year == "2020")
              ,aes(label= Team),
              # nudge_x = - 1.5,
              nudge_y = - 0.3,
              show.legend = FALSE
   )
 
-cor(df.2017$W, df.2017$PDO)
+cor(dataset.2017$W, dataset.2017$PDO)
 
 ggsave("plots/pdo_victory.png",width = 10,height = 6,dpi = 600)
