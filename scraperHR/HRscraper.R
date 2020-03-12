@@ -1,8 +1,5 @@
 library(rvest)
-library(dplyr)
-library(magrittr)
 library(tidyverse)
-library(readr)
 
 # URL ----
 #regular season page table shared teams stats, you have to generate
@@ -57,6 +54,17 @@ advstat <- as.data.frame(advstat)
 allstats <- merge(regstat, advstat, by= "V1", all.x = T)
 
 colnames(allstats)[1] <- "Teams"
+
+# statshead <- c("Teams","AvAge","GP","W","L","OL","PTS","PTS.","GF","GA","SOW",
+#                "SOL","SRS","SOS","TGpG","EVGF","EVGA","PP","PPO","PP.","PPA","PPOA",
+#                "PK.","SH","SHA","PIMpG","oPIMpG","S","S.","SA","SV.","SO","EVS.",
+#                "EVSV.","EVPDO","EVCF","EVCA","EVCF.","EVFF","EVFA","EVFF.",
+#                "EVxGF","EVxGA","EVaGF","EVaGA","EVaxDiff","EVSCF","EVSCA",
+#                "EVSCF.","EVHDF","EVHDA","EVHDF.","EVHDGF","EVHDC.","EVHDGA",
+#                "EVHDCO.")
+# 
+# colnames(allstats) <- statshead
+
 allstats <- allstats[-c(14), ]
 
 allstats <- allstats[order(allstats$PTS, decreasing = T), ]

@@ -1,17 +1,9 @@
 library(rvest)
-#library(corpus)
 library(lubridate)
 library(tidyverse)
 library(hrbrthemes)
 library(ggrepel)
-# library(mclust)
 
-
-# Reading old data ----
-#TODO Convert colums and set date
-# dfpa <- read.csv(paste0(teamname,datetoday,"players.csv"))
-# dfpa <- as_tibble(dfpa)
-# dfp <- type_convert(dfp)
 # Functions ----
 setenv <- function(){
 teamcolors <<- c("#b5985a", "#8c2633", "#fcb514", "#002654", "#ce1126", "#76232F", "#cc8a00", "#6f263d",

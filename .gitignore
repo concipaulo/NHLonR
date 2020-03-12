@@ -3,8 +3,10 @@
 .RData
 .Ruserdata
 plots/
+Old/
 *.Rproj
 *.user
+evolving-hockey.R
 NHLschedulescraper/plots/*
 NHLschedulescraper/Data/*
 NHLschedulescraper/Old/*
@@ -12,3 +14,4 @@ NHLschedulescraper/*.png
 NHLschedulescraper/Player\ Analysis/Data/*
 NHLschedulescraper/Player\ Analysis/plots/*
 *.gif
+.Rproj.user

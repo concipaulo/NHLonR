@@ -4,11 +4,28 @@ Packages <- c("ggthemes","stringr","ggrepel","ggExtra","viridis",
               "gridExtra","ggthemr","hrbrthemes","tidyverse", "gghighlight")
 invisible(lapply(Packages, library, character.only = TRUE))
 
-# more themes ----
-# be carrefull with the functions that new packages masks. 
-library(gcookbook)
+setenv <- function(){
+teamcolors <<- c("#b5985a", "#8c2633", "#fcb514", "#002654", "#ce1126", "#76232F", "#cc8a00", "#6f263d",
+            "#041e42", "#006341", "#c8102e", "#fc4c02", "#b9975b", "#a2aaad", "#154734", "#a6192e",
+            "#ffb81c", "#c8102e", "#003087", "#0033a0", "#c69214", "#fa4616", "#ffb81c", "#006272",
+            "#041e42", "#00205b", "#00205b", "#008852", "#b9975b", "#041e42", "#041e42")
 
-datetoday <- Sys.Date()
+nhlteams <<- c("anaheim-ducks","phoenix-coyotes", "boston-bruins", "buffalo-sabres",
+             "calgary-flames", "carolina-hurricanes", "chicago-blackhawks", "colorado-avalanche",
+             "columbus-blue-jackets", "dallas-stars", "detroit-red-wings", "edmonton-oilers",
+             "florida-panthers", "los-angeles-kings", "minnesota-wild", "montreal-canadiens",
+             "nashville-predators", "new-jersey-devils", "new-york-islanders", "new-york-rangers",
+             "ottawa-senators", "philadelphia-flyers", "pittsburgh-penguins", "san-jose-sharks",
+             "st-louis-blues", "tampa-bay-lightning", "toronto-maple-leafs", "vancouver-canucks",
+             "vegas-golden-knights", "washington-capitals", "winnipeg-jets")
+
+
+teams_abrv <- read.csv("~/NHLonR/teams_abrev.csv", stringsAsFactors = F)
+teams_abrv <<- as_tibble(teams_abrv)
+datetoday <<- Sys.Date()
+reference <<- sprintf("Source: www.quanthockey.com, %s", datetoday)
+
+}
 
 # loading data ----
 teams_2014 <- read.csv("teams_2014.csv")
@@ -48,7 +65,9 @@ teams_2020$Year <- cbind(Year = rep(2020, nrow(teams_2020)))
 
 # creating data frame ----
 df <- do.call("rbind", list(teams_2014, teams_2015, teams_2016, teams_2017,
-      teams_2018,teams_2019,teams_2020))
+      teams_2018,teams_2019))
+
+write_csv(df, "teams2014-2019rs.csv")
 
 df <- as_tibble(df)
 #df <- data.frame(df)
