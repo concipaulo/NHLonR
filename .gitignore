@@ -13,5 +13,5 @@ NHLschedulescraper/Old/*
 NHLschedulescraper/*.png
 NHLschedulescraper/Player\ Analysis/Data/*
 NHLschedulescraper/Player\ Analysis/plots/*
-*.gif
 .Rproj.user
+*.gif
