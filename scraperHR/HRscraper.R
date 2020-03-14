@@ -4,8 +4,9 @@ library(tidyverse)
 # URL ----
 #regular season page table shared teams stats, you have to generate
 # a shared link of the table, it doesnt update itself :(((
-webpage1 <- read_html("http://hkref.com/pi/share/Bc4Zj") # Regular stats
-webpage2 <- read_html("http://hkref.com/pi/share/DwZKl") # advanced stats
+# Links from Mar 13, 2020
+webpage1 <- read_html("https://www.hockey-reference.com/pi/share/F1qvq") # Regular stats
+webpage2 <- read_html("https://www.hockey-reference.com/pi/share/ulHMZ") # advanced stats
 
 regstats <- webpage1 %>%
   html_nodes("td") %>%

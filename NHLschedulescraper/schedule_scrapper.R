@@ -310,8 +310,8 @@ dfs %>%
   gghighlight(Date >= "2020-02-25")+
   theme_ipsum_rc(grid = "X,Y") +
   theme(legend.position = "none")+
-  scale_colour_manual( values =  c( "#ff1a1a","#2eb82e")) +
-  scale_fill_manual( values =  c( "#ff1a1a","#2eb82e"),  aesthetics = c("fill")) +
+  scale_colour_manual(values =  c( "#ff1a1a","#2eb82e")) +
+  scale_fill_manual(values =  c( "#ff1a1a","#2eb82e"),  aesthetics = c("fill")) +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
   scale_x_date(date_labels = "%d-%b", breaks = scales::pretty_breaks(n = 10)) +
   ylab("Net Goals") +
