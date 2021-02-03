@@ -1,7 +1,7 @@
 #! diagnostics off
 # load packages ----
 Packages <- c("ggthemes","ggrepel","ggExtra","viridis",
-              "gridExtra","ggthemr","hrbrthemes","tidyverse", "gghighlight")
+              "gridExtra", "hrbrthemes","tidyverse", "gghighlight")
 invisible(lapply(Packages, library, character.only = TRUE))
 
 # Functions
@@ -32,26 +32,26 @@ loaddata <- function() {
   teams_1419 <- read.csv("teams2014-2019rs.csv")
   teams_2020 <- read.csv("teams_2020.csv")
   teams_abrv <- read.csv("teams_abrev.csv")
-  
+
   # creating data frame ----
   df <- do.call("rbind", list(teams_1419, teams_2020))
-  
+
   df <- as_tibble(df)
   #df <- data.frame(df)
   df$Year <- as.factor(df$Year)
-  
+
   # Cleaning teams name and creating the playoff variable ----
   df$Playoff <- (rep("NO", nrow(df)))
   df$Playoff[which(df$Year == "2020")] <- "2019-20"
-  
+
   # regular expression to match any playoff teams
   rexp <- "[\\w .]+[ ](\\w)*[*]"
   df$Playoff[which(str_detect(df$Teams, rexp))] <- "YES"
   # cleaning teams names ----
   df$Teams <- str_remove_all(df$Teams, "[*]")
-  
+
   teams_abrv <- as_tibble(teams_abrv)
-  
+
   # Joinning data frames ----
   for (i in 1:nrow(df)) {
     for (j in 1:nrow(teams_abrv)) {
@@ -66,18 +66,18 @@ loaddata <- function() {
   #names(df)[names(df) == 'V59'] <- 'Conf'
   #names(df)[names(df) == 'V60'] <- 'Div'
   #names(df)[names(df) == 'V61'] <- 'Team'
-  
+
   # analysing data, managing variables ----
   df$Playoff <- as.factor(df$Playoff)
   #df$Teams <- as.factor(df$Teams)
-  
+
   # creating a new variable called season
   df$Season <- ifelse(df$Year == "2020", '2020', '2014-2019')
   df$Season <- as.factor(df$Season)
   df$Team[which(df$Team == "PHO")] <- "ARI"
-  
+
   dataset <<- df
-  
+
 }
 
 # Calls
@@ -164,7 +164,7 @@ ggsave(
 ggplot(dataset, aes(W, PTS, col = Playoff, fill=Playoff)) +
   geom_point(shape = 20,
     size = 7,
-    show.legend = T, 
+    show.legend = T,
     alpha=0.91
     ) +
   theme_ipsum_rc() +
@@ -223,7 +223,7 @@ ggsave(
   dpi = 600
 )
 
-dplyr::filter(dataset, Year != 2020) %>% 
+dplyr::filter(dataset, Year != 2020) %>%
   ggplot(aes(as.factor(Div), PTS., col = Playoff)) +
   geom_boxplot(alpha = 1) +
   theme_ipsum_rc(grid = "X,Y") +
@@ -327,7 +327,7 @@ hist(dataset$oPIM.G)
 
 
 dplyr::filter(dataset, Playoff != "2019-20") %>%
-  mutate(ppgoalpergame = PP / GP) %>% 
+  mutate(ppgoalpergame = PP / GP) %>%
   ggplot(aes(oPIMpG, ppgoalpergame)) +
   geom_point(shape = 21, size = 7, aes(fill = Season, col = Season), alpha = 0.6) +
   geom_smooth(method = "lm", col = "firebrick", se =F) +
@@ -339,7 +339,7 @@ dplyr::filter(dataset, Playoff != "2019-20") %>%
   xlab("Opposing team penalty minutes per game") +
   labs(title = "Powerplay goals in function of Penalty minutes", subtitle = "since 2013-14",
        caption = paste0("Source: hockey-reference.com ", datetoday))
-  
+
 ggsave(
        paste0("plots/ppg_to_opim ", datetoday, " .png"),
          width = 11, height = 6, dpi =600)
@@ -368,10 +368,10 @@ ggsave(
          width = 11, height = 6, dpi =600)
 
 dataset%>%
-  group_by(Team) %>% 
-  summarise(opimg = mean(oPIMpG), pimg = mean(PIMpG)) %>% 
+  group_by(Team) %>%
+  summarise(opimg = mean(oPIMpG), pimg = mean(PIMpG)) %>%
   mutate(pim = opimg - pimg,
-         color = ifelse(pim >= 0, '1', '0')) %>% 
+         color = ifelse(pim >= 0, '1', '0')) %>%
 
 ggplot(aes(x = Team, y = pim, fill = color)) +
   geom_bar(stat = "summary", fun.y = "mean") +
@@ -410,7 +410,7 @@ dataset %>%
   labs(title = "Goal Differential in Regular Season", subtitle = "since 2013-14",
        caption = paste0("Source: hockey-reference.com ", datetoday))
 
-ggsave( 
+ggsave(
        paste0("plots/goaldif_2020 ", datetoday, " .png"),
          width = 11, height = 6, dpi =600)
 
@@ -439,7 +439,7 @@ ggsave(
          width = 11, height = 6, dpi =600)
 
 dataset %>%
-  filter(Playoff != "2019-20") %>% 
+  filter(Playoff != "2019-20") %>%
   mutate(shotdif = S - SA, goaldif = GF - GA)%>%
   ggplot(aes(shotdif, goaldif)) +
   geom_point(shape = 21, size = 7, aes(fill = Season, col = Season), alpha = 0.6) +
@@ -504,7 +504,7 @@ ggplot(dataset, aes(PPA)) +
   xlab("Goals while Shorthanded") +
   labs(title = "Mean of Shorthanded Goals per Game", subtitle = "since 2013-14",
        caption = paste0("Source: hockey-reference.com ", datetoday))
-  
+
 ggsave(
   paste0("plots/mean_short_goals ", datetoday, " .png"),
   width = 11, height = 6, dpi =600)
@@ -527,13 +527,13 @@ dataset %>%
   xlab("Team") +
   labs(title = "Points in Regular Season", subtitle = "since 2013-14",
        caption = paste0("Source: hockey-reference.com ", datetoday))
-  
+
 ggsave(
         paste0("plots/pts_2020 ", datetoday, " .png"),
   width = 11, height = 6, dpi =600)
 
 # Analising teams defensive stats ----
-# you have to include a new column if you want to put label in it 
+# you have to include a new column if you want to put label in it
 dataset$tgevg<- (dataset$EVGA + dataset$EVGF)/dataset$GP
 dataset$tgevg
 
@@ -551,7 +551,7 @@ dataset%>%
        caption = paste0("Source: hockey-reference.com ", datetoday))
   scale_fill_viridis_d()+
   geom_label(data = dataset%>%filter(tgevg >= 5.0 & Year == "2020"),aes(label = Team) )
-   
+
 ggsave(
   "plots/victories_to_ptspercent.png",
   width = 10,
@@ -564,7 +564,7 @@ ggsave(
 ggplot(dataset, aes(GA, PTS, col = Playoff, fill=Playoff)) +
   geom_point(shape = 21,
     size = 3,
-    show.legend = T, 
+    show.legend = T,
     alpha=0.5
     ) +
   theme_ipsum_rc() +
@@ -586,7 +586,7 @@ ggsave(
   dpi = 600
 )
 
-# losses per game played 
+# losses per game played
 # you have to include a new column if you want to put label in it
 # only if you want to label with
 dataset$lep <- (dataset$L + dataset$OL)/dataset$GP
@@ -603,7 +603,7 @@ dataset %>%
     ggtitle("PTS% in Function of Losses per Game since 2013-14")+
     geom_label_repel(fill = "black",data = dataset %>% filter(Team == "TOR" & Year == "2020"),
                     aes(label = Team),nudge_y = 0.02,show.legend = FALSE)
-    
+
 ggsave("plots/pts_to_lep.png",width = 10,height = 6,dpi = 600)
 
 cor(dataset$PTS., dataset$lep)
@@ -649,7 +649,7 @@ ggsave("plots/goals_allow_victory.png",width = 10,height = 6,dpi = 600)
 
 # advanced stats where recorded only from 2016-17 forward. ----
 
-dataset%>%filter(as.character(Year) >= "2017")%>%  
+dataset%>%filter(as.character(Year) >= "2017")%>%
 ggplot(aes(W, EVCF., col = Playoff, fill=Playoff)) +
   geom_point(shape = 21,size = 4,show.legend = T, alpha=0.99) +
   geom_smooth(method = "lm", col = "deepskyblue", fill = "deepskyblue2", se=F) +
@@ -665,7 +665,7 @@ ggplot(aes(W, EVCF., col = Playoff, fill=Playoff)) +
 ggsave("plots/corsipct_victory.png",width = 10,height = 6,dpi = 600)
 
 
-dataset%>%filter(as.character(Year) >= "2017")%>%  
+dataset%>%filter(as.character(Year) >= "2017")%>%
 ggplot(aes(W, EVPDO, col = Playoff, fill = Playoff)) +
   geom_point(shape = 21, size = 4, show.legend = T, alpha=0.99) +
   geom_smooth(method = "lm",col = "deepskyblue", fill = "deepskyblue2", se=F) +

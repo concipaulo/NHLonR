@@ -11,6 +11,9 @@ Old/
 plots/
 MoneyPuckData/*
 NHLschedulescraper/plots/*
+NHLschedulescraper/core
+NHLschedulescraper/*.Rmd
+NHLschedulescraper/schedule_scrapper.R
 NHLschedulescraper/Data/*
 NHLschedulescraper/Old/*
 NHLschedulescraper/*.png

@@ -57,7 +57,7 @@ getplayerdata <- function(ii,jj=ii){
     message(paste0("Retriving player data from ", nhlteams[i]))
     Sys.sleep(2)
 
-  playerwebpage <- read_html(paste0("https://www.quanthockey.com/nhl/teams/",nhlteams[i],"-players-2019-20-nhl-stats.html"), encoding = "latin1")
+  playerwebpage <- read_html(paste0("https://www.quanthockey.com/nhl/teams/",nhlteams[i],"-players-2020-21-nhl-stats.html"), encoding = "latin1")
   playerwebdata <- playerwebpage %>%
     html_nodes("td") %>%
     html_text()
@@ -66,11 +66,11 @@ getplayerdata <- function(ii,jj=ii){
     html_nodes("title") %>%
     html_text()
 
-  playertitles <-  playerwebpage %>%
+  playertitles <<-  playerwebpage %>%
     html_nodes("th") %>%
     html_text()
 
-  stat_player <- gsub("%", ".", playertitles[17:66])
+  stat_player <- gsub("%", ".", playertitles[14:63])
   stat_player <- gsub("/", "p", stat_player)
   teamname <- str_remove(teamname, "( \\@.*)")
 
@@ -88,6 +88,7 @@ getplayerdata <- function(ii,jj=ii){
   colnames(dfp)[2] <- "Team"
   colnames(dfp)[11] <- "P.M"
 
+  test <<- colnames(dfp)
   dfp <- as_tibble(dfp)
   dfp$PPP. <- as.numeric(sub("%","",dfp$PPP.))/100
   dfp$SH. <- as.numeric(sub("%","",dfp$SH.))/100
@@ -100,9 +101,12 @@ getplayerdata <- function(ii,jj=ii){
   dfp$PP <- str_pad(dfp$PP, width = 5, side = "left", pad = "0")
   dfp$SH <- str_pad(dfp$SH, width = 5, side = "left", pad = "0")
 
+
   dfp$Pos <- as.factor(dfp$Pos)
 
   stat_p <- colnames(dfp)
+
+  dfp <<- dfp
 
   # Writing a backup file ----
   write.csv(dfp, file = paste0("Data/",teamname,datetoday,"players.csv"), row.names = F)
@@ -130,15 +134,16 @@ readplayersdata <- function(name, day){
   Team = col_character(),
   Name = col_character(),
   Pos = col_factor(),
+  Age = col_integer(),
   TOI = col_time(format = "%M:%S"),
   ES = col_time(format = "%M:%S"),
   PP = col_time(format = "%M:%S"),
   SH = col_time(format = "%M:%S"))
 
-  read_csv(paste0("Data/",name,day,"players.csv"), col_types = dfpcols)
+  read_csv(paste0("~/NHLonR/NHLschedulescraper/Player Analysis/Data/",name,day,"players.csv"), col_types = dfpcols)
 }
 
-teams_abrv <- read_csv("~/NHLonR/teams_abrev.csv", col_types = cols(.default = col_character()))
+teams_abrv <- read_csv("~/NHLonR/teams_abrev2.csv", col_types = cols(.default = col_character()))
 
 #creating a scafold to list the teams to read and days
 #tname <- tname
@@ -184,7 +189,9 @@ getplayerdata(1,31)
 
 getteamid("leafs")
 
-readplayerdata(1, 31, datetoday)
+#dates of downloaded data: 2021-01-30
+datetoread <- "2021-01-30"
+readplayerdata(1, 31, datetoread)
 
 #Plotting ----
 
@@ -193,41 +200,145 @@ readplayerdata(1, 31, datetoday)
 # sorting from bigger to smallest
 # creating a new column to hold the position in the table
 # creating a factor of the id and name so they show up from top to bottom
-leadergoals <- dataset %>%
-                filter(ESGp60 >= 0.6, GP > 30, Pos != "G") %>%
-                dplyr::select(Name, ESGp60)%>%
+leadergoalsper60 <- dataset %>%
+                filter(ESGp60 >= 0.6, Pos != "G") %>%
+                dplyr::select(Name, ESGp60, GP, TM)%>%
                 arrange(desc(ESGp60)) %>%
-                mutate(id = row_number())%>%
-                mutate(Name = fct_reorder(Name, id),
-                       Name = fct_rev(Name))
+                mutate(Rk = row_number())%>%
+                mutate(Name = fct_reorder(Name, Rk),
+                       Name = fct_rev(Name)) %>%
+                select(Rk,Name,ESGp60,TM,GP)
+
+#Summary
+qksummary <- dataset %>%
+  summarise_at(vars(Age:FO., -Pos), mean, na.rm = TRUE) %>%
+  add_column(Name = "League Average")
+
+
 
 # Even strength goals per 60 ----
 dataset %>%
-  filter(ESGp60 >= 0.6, GP > 30, Pos != "G") %>%
+  filter(ESGp60 >= 0.6, Pos != "G") %>%
   dplyr::select(Player, ESGp60, TM)%>%
+  add_row(Player = qksummary$Name, ESGp60 = round(qksummary$ESGp60, 3)) %>%
   arrange(desc(ESGp60)) %>%
   mutate(id = row_number())%>%
   mutate(Player = fct_reorder(Player, id),
          Player = fct_rev(Player))%>%
-  filter(id <= 15) %>%
+  filter(id <= 15 | Player == "League Average") %>%
   ggplot(aes(ESGp60, Player, label = ESGp60))+
-  geom_segment(aes(x=0.5, y=Player, xend = ESGp60, yend = Player), col = "black")+
-  geom_point(shape = 19, size = 5, col = "black")+
-  geom_text(color = 'black', size = 3, nudge_x = 0.05)+
-  theme_ipsum_rc()+
+  geom_segment(aes(x=0, y=Player, xend = ESGp60, yend = Player), col = "grey")+
+  geom_point(shape = 19, size = 5, col = "grey")+
+  geom_text(color = 'grey', size = 3, nudge_x = 0.4)+
+  theme_modern_rc()+
   xlab("Even Strength Goals per 60")+
   ylab("")+
-  labs(caption = paste0(reference,"\n Minimum 30 Games Played"),
+  labs(caption = paste0(reference,"\n "),
        title = paste0("Leaders in Even Strength Goals per 60"),
-       subtitle = "2019-20 Regular Season")
+       subtitle = "2020-21 Regular Season")
 
 ggsave(
   paste0("plots/ESGoalsper60 ", datetoday, ".png"),
   width = 11, height = 6, dpi = 600)
 
+# Leader Goals ----
+dataset %>%
+  dplyr::select(Player, G, TM)%>%
+  arrange(desc(G)) %>%
+  mutate(Rk = row_number())%>%
+  mutate(Player = fct_reorder(Player, Rk),
+         Player = fct_rev(Player))%>%
+  filter(Rk <= 15) %>%
+  add_row()
+  ggplot(aes(G, Player, label = G))+
+  geom_segment(aes(x=3, y= Player, xend = G, yend = Player), col = "black")+
+  geom_point(shape = 19, size = 5, col = "black")+
+  geom_text(color = 'black', size = 3, nudge_x = 0.15)+
+  theme_ipsum_rc()+
+  xlab("Goals")+
+  ylab("")+
+  labs(caption = paste0(reference,"\n"),
+       title = paste0("Leaders in Goals"),
+       subtitle = "2020-21 Regular Season")
+
+ggsave(
+  paste0("plots/Goalsleader ", datetoday, ".png"),
+  width = 11, height = 6, dpi = 600)
+
+# Leader Assists ----
+dataset %>%
+  dplyr::select(Player, A, TM)%>%
+  arrange(desc(A)) %>%
+  mutate(Rk = row_number())%>%
+  mutate(Player = fct_reorder(Player, Rk),
+         Player = fct_rev(Player))%>%
+  filter(Rk <= 15) %>%
+  ggplot(aes(A, Player, label = A))+
+  geom_segment(aes(x=3, y= Player, xend = A, yend = Player), col = "black")+
+  geom_point(shape = 19, size = 5, col = "black")+
+  geom_text(color = 'black', size = 3, nudge_x = 0.25)+
+  theme_ipsum_rc()+
+  xlab("Assists")+
+  ylab("")+
+  labs(caption = paste0(reference,"\n"),
+       title = paste0("Leaders in Assists"),
+       subtitle = "2020-21 Regular Season")
+
+ggsave(
+  paste0("plots/assistsleader ", datetoday, ".png"),
+  width = 11, height = 6, dpi = 600)
+
+# Leader Points ----
+dataset %>%
+  dplyr::select(Player, P, TM)%>%
+  arrange(desc(P)) %>%
+  mutate(Rk = row_number())%>%
+  mutate(Player = fct_reorder(Player, Rk),
+         Player = fct_rev(Player))%>%
+  filter(Rk <= 15) %>%
+  ggplot(aes(P, Player, label = P))+
+  geom_segment(aes(x=7, y= Player, xend = P, yend = Player), col = "black")+
+  geom_point(shape = 19, size = 5, col = "black")+
+  geom_text(color = 'black', size = 3, nudge_x = 0.3)+
+  theme_ipsum_rc()+
+  xlab("Points")+
+  ylab("")+
+  labs(caption = paste0(reference,"\n"),
+       title = paste0("Points Leaders"),
+       subtitle = "2020-21 Regular Season")
+
+ggsave(
+  paste0("plots/Pointsleader ", datetoday, ".png"),
+  width = 11, height = 6, dpi = 600)
+
+
+# Leader shoting% ----
+dataset %>%
+  filter(GP > 5) %>%
+  dplyr::select(Player, SH., TM)%>%
+  arrange(desc(SH.)) %>%
+  mutate(Rk = row_number())%>%
+  mutate(Player = fct_reorder(Player, Rk),
+         Player = fct_rev(Player))%>%
+  filter(Rk <= 15) %>%
+  ggplot(aes(SH., Player, label = SH.))+
+  geom_segment(aes(x=0.2, y= Player, xend = SH., yend = Player), col = "black")+
+  geom_point(shape = 19, size = 5, col = "black")+
+  geom_text(color = 'black', size = 3, nudge_x = 0.05)+
+  theme_ipsum_rc()+
+  xlab("Points")+
+  ylab("")+
+  labs(caption = paste0(reference,"\n 5 or more games played"),
+       title = paste0("Shoting Percentage"),
+       subtitle = "2020-21 Regular Season")
+
+ggsave(
+  paste0("plots/shotingpct ", datetoday, ".png"),
+  width = 11, height = 6, dpi = 600)
+
 # Even strenth assists per 60 ----
 dataset %>%
-  filter(ESAp60 >= 1.5, GP > 30, Pos != "G") %>%
+  filter() %>%
   dplyr::select(Player, ESAp60)%>%
   arrange(desc(ESAp60)) %>%
   mutate(id = row_number())%>%
@@ -237,7 +348,7 @@ dataset %>%
   ggplot(aes(ESAp60, Player, label = ESAp60))+
   geom_segment(aes(x=1.5, y=Player, xend = ESAp60, yend = Player), col = "black")+
   geom_point(shape = 19, size = 5, col = "black")+
-  geom_text(color = 'black', size = 3.5, nudge_x = 0.03)+
+  geom_text(color = 'black', size = 3.5, nudge_x = 0.35)+
   theme_ipsum_rc()+
   xlab("Even Strength Assists per 60")+
   ylab("")+
@@ -251,7 +362,7 @@ paste0("plots/ESAssistssper60 ", datetoday, ".png"),
 
 # Even strength points per 60 ----
 dataset %>%
-  filter(ESPp60 >= 1.5, GP > 30, Pos != "G") %>%
+  filter(ESPp60 >= 1.5 , Pos != "G") %>%
   dplyr::select(Player, ESPp60)%>%
   arrange(desc(ESPp60)) %>%
   mutate(id = row_number())%>%
@@ -261,7 +372,7 @@ dataset %>%
   ggplot(aes(ESPp60, Player, label = ESPp60))+
   geom_segment(aes(x=2.5, y=Player, xend = ESPp60, yend = Player), col = "black")+
   geom_point(shape = 19, size = 5, col = "black")+
-  geom_text(color = 'black', size = 3.5, nudge_x = 0.07)+
+  geom_text(color = 'black', size = 3.5, nudge_x = 0.15)+
   scale_x_continuous(breaks = scales::pretty_breaks(n = 6))+
   theme_ipsum_rc()+
   xlab("Even Strength Points per 60")+
@@ -276,7 +387,7 @@ paste0("plots/ESPointsper60 ", datetoday, ".png"),
 
 # Points per 60  ----
 dataset %>%
-  filter(Pp60 >= 1.5, GP > 30, Pos != "G") %>%
+  filter(Pp60 >= 1.5, Pos != "G") %>%
   dplyr::select(Player, Pp60)%>%
   arrange(desc(Pp60)) %>%
   mutate(id = row_number())%>%
@@ -301,7 +412,7 @@ ggsave(
 
 # Goals Per 60 ----
 dataset %>%
-  filter(Gp60 >= 1.5, GP > 30, Pos != "G") %>%
+  filter(Gp60 >= 1.5, Pos != "G") %>%
   dplyr::select(Player, Gp60)%>%
   arrange(desc(Gp60)) %>%
   mutate(id = row_number())%>%
@@ -352,7 +463,7 @@ ggsave(
 
 # time on ice  ----
 dataset%>%
-  filter(GP >=30, ES >= 300) %>%
+  #filter(GP >=30, ES >= 300) %>%
   ggplot(aes(ES, ESAp60)) +
   geom_point()+
   geom_smooth()+
@@ -361,18 +472,27 @@ dataset%>%
   theme_ipsum_rc()+
   geom_label_repel(
     col = "black",
-    data = dataset %>% filter(GP >=30, ESAp60 > 2.2),
+    data = dataset %>% filter(ESAp60 > 6),
     aes(label = Player),
+    #nudge_y =  0.01,
+    #nudge_x =  0.1,
+    point.padding = 4,
+    force_pull = 2,
+    force = 3,
     show.legend = FALSE
   )
 
 #=========================================================================================
 #
-#                     New section below is a whole new thing
+#                     New section below, is a whole new thing
 #
 #=========================================================================================
 # Who is the better shooter in nhl ----
-mean(dataset$SH.)
+dataset %>%
+  filter(Pos != "G", na.rm = TRUE) %>%
+  select(SH.) %>%
+  summarise(mean = mean(SH.))
+
 
 career <- dataset %>%
   filter(Pos != "G", SHOTS >= 1) %>%
