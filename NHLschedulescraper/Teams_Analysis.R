@@ -1,8 +1,11 @@
 library(tidyverse)
 library(rvest)
+library(janitor)
+library(hrbrthemes)
+library(ggrepel)
 # additional
-library(gghighlight)
-#library(plotly)
+#library(gghighlight) # highlight some lines
+#library(plotly) # iterative plot
 
 # Set variables for the other functions ----
 setenv <- function(){
@@ -148,6 +151,7 @@ getstandings <- function(v = "d", sd = "202021", ed = sd){
      #cleaning stats names
     stat_team <- gsub("%", ".", titles[10:45])
     stat_team <- gsub("-", "", stat_team)
+    stat_team <- gsub("/", "p", stat_team)
 
        # Creating a data frame
     dfg <- matrix(
@@ -159,6 +163,33 @@ getstandings <- function(v = "d", sd = "202021", ed = sd){
 
     dfg <- as_tibble(dfg)
 
+    abrv <- rename(teams_abrv, Abbrv = Team)
+
+    dfg <- left_join(dfg, abrv, by = c("Team" = "Teams"))
+
+# such a hassle just to convert the number to the right class ughh
+# probably can just call type_convert on the whole df
+    dfg$PDO <- as.numeric(sub("%","",dfg$PDO))/100
+    dfg$PDOA <- as.numeric(sub("%","",dfg$PDOA))/100
+    dfg$SH. <- as.numeric(sub("%","",dfg$SH.))/100
+    dfg$SH.A <- as.numeric(sub("%","",dfg$SH.A))/100
+    dfg$FO. <- as.numeric(sub("%","",dfg$FO.))/100
+    dfg$SV. <- as.numeric(sub("%","",dfg$SV.))/100
+    dfg$SV.A <- as.numeric(sub("%","",dfg$SV.A))/100
+
+    cls <- cols(
+      .default = col_double(),
+      Rk = col_integer(),
+      Team = col_character(),
+      Abbrv = col_character(),
+      Div = col_factor(),
+      Conf = col_character(),
+      City = col_character()
+    )
+
+   dfg <- type_convert(dfg, col_types = cls)
+
+# returning data frame
     stands <<- dfg
 
 }
@@ -329,7 +360,9 @@ test <- rankings %>%
 
 test$oppo <- if_else(duplicated(test$fct), lag(test$Team), "")
 
-test$headtohead <- dfs %>%
+#test$headtohead <- dfs %>%
+# filter(Team == , Oppo == ) %>%
+
 
 
 
@@ -353,11 +386,9 @@ getteamdata(1,31)
 # Files should have the name as "teamname""datetoday".csv. Read function for more information.
 readteamdata(teamsfiles)
 
-getteamid("oilers")
+getteamid("leafs")
 
 quicksummary()
-
-league_standings()
 
 getstandings()
 
@@ -366,7 +397,7 @@ teams_avg <- dfs %>%
   group_by(name) %>%
   summarise_at(vars(GF:BSD), mean, na.rm = TRUE)
 
-# victories that counts on the standins i.e. no SO Win
+# victories that counts on the standins i.e. no SO Win ----
 victories <- dfs %>%
   select(name:Result, Team:WOL) %>%
   group_by(Team, Gms, Div) %>%
@@ -378,18 +409,26 @@ victories <- dfs %>%
 
 dfs <- left_join(dfs, victories, by = c("Team", "Gms"))
 
+# Rankings between the division ----
 tracinggames <- dfs %>%
   select(name:Date, Team:win) %>%
   group_by(Gms, Div) %>%
   arrange(desc(PTS), win) %>%
   mutate(rankings = row_number())
 
-# Opponents abbreviations
+# Opponents abbreviations ----
 oppo <- teams_abrv %>%
   select(Teams:Div) %>%
   rename(Oppo = Team, Div.Oppo = Div)
 
 dfs <- left_join(dfs, oppo, by = c("Opponent" = "Teams"))
+
+# League average  ----
+# stole from the internet lol
+stands <- stands %>%
+  bind_rows(summarise(.,
+                      across(where(is.numeric), mean),
+                      across(where(is.character), ~"League Avg.")))
 
 # New Plots ----
 
@@ -398,13 +437,12 @@ dfs %>%
   ggplot(aes(Date, PTS)) +
       geom_line(lwd = 1, col = teamcolors[idx])+
       geom_point(shape = 21, size = 6, alpha = 0.95, aes(fill= Result, col=Result, group = seq_along(Date)))+
-      #gghighlight(Date >= "2020-02-25")+
+      #gghighlight(Date >= "2021-02-01")+
       theme_modern_rc(grid = "X,x,Y,y")+
       xlab("Games") +
       #scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
       scale_x_date(date_labels = "%d-%b", breaks = scales::pretty_breaks(n = 10)) + # uncomment if its a date
       scale_y_continuous(breaks = scales::pretty_breaks(n = 6))+
-      #scale_color_manual(values = teamcolors, aesthetics = c("color", "fill"))+
       scale_fill_brewer(palette = "RdYlGn", name = "Result")+
       scale_color_brewer(palette = "RdYlGn", name = "Result")+
       labs(caption = reference, title = paste0(teamname," Record"), subtitle = "2020-21 Regular Season")
@@ -414,7 +452,7 @@ dfs %>%
   paste0("plots/",teamname,"/pts_so_far", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 
 
@@ -425,11 +463,10 @@ tracinggames %>%
       geom_path(lwd = 1, aes(col = Team))+
       geom_point(shape = 21, size = 5, alpha = 0.95, aes(fill = Team, col = Team))+
       facet_wrap(vars(Div))+
-      theme_modern_rc(grid = "X,Y")+
+      theme_modern_rc(grid = "X,x,Y")+
       theme(strip.text = element_text(colour = 'Grey'))+
       xlab("Games") +
       scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
-      #scale_x_date(date_labels = "%d-%b", breaks = scales::pretty_breaks(n = 10)) + # uncomment if its a date
       scale_y_continuous(trans = "reverse", breaks = scales::pretty_breaks(n = 6))+
       scale_color_manual(values = teamcolors, aesthetics = c("color", "fill"))+
 
@@ -442,16 +479,108 @@ tracinggames %>%
       geom_line(lwd = 1, aes(col = Team))+
       geom_point(shape = 21, size = 5, alpha = 0.99, aes(fill = Team, col = Team))+
       facet_wrap(vars(Div))+
-      gghighlight(Team %in% c("TOR", "MTL"), keep_scales = T, label_key = Team, n = 2)+
       theme_modern_rc(grid = "X,x,Y,y")+
       theme(strip.text = element_text(colour = 'Grey'))+
       xlab("Games")+
       #scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
       scale_x_date(date_labels = "%d-%b", breaks = scales::pretty_breaks(n = 10))+ # uncomment if its a date
-      scale_y_continuous(breaks = scales::pretty_breaks(n = 6))+
+      scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
       scale_color_manual(values = teamcolors, aesthetics = c("color", "fill"))+
 
       labs(caption = reference, title = paste0("Division Record"), subtitle = "2020-21 Regular Season")
+
+# Lollipop chart, coolest of all imo
+# big numbers Goals, points, games, ...
+var1 <- teamname
+var2 <- "League"
+stands %>%
+  filter(Team == var1 | grepl(var2, Team)) %>%
+  dplyr::select(GP, W, L, PTS, GF, GA) %>%
+  t() %>% as.data.frame() %>%
+  #row_to_names(1) %>%
+  rownames_to_column() %>%
+  arrange(V2) %>%
+  mutate(rowname=factor(rowname, rowname)) %>%
+  ggplot( aes(x=rowname, y=V1)) +
+    geom_segment( aes(x=rowname ,xend=rowname, y=V2, yend=V1), color="magenta", lwd = 0.7) +
+    geom_point(size=5, color=teamcolors[idx]) +
+    geom_point(aes(y=V2), size=5, color="#69b3a2", alpha=0.3) +
+    hrbrthemes::theme_modern_rc(grid = "X,x,Y") +
+    coord_flip() +
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+    ylab("Value") +
+    xlab("Stats")+
+   labs(caption = reference, title = paste0(teamname, " Against League Average"), subtitle = "2020-21 Regular Season")
+
+# small numbers, like sv., pdo., sh., ...
+stands %>%
+  filter(Team == var1 | grepl(var2, Team)) %>%
+  dplyr::select(SV., PDO, SH., FO., PTSpGP) %>%
+  t() %>% as.data.frame() %>%
+  #row_to_names(1) %>%
+  rownames_to_column() %>%
+  arrange(V2) %>%
+  mutate(rowname=factor(rowname, rowname)) %>%
+  ggplot( aes(x=rowname, y=V1)) +
+    geom_segment( aes(x=rowname ,xend=rowname, y=V2, yend=V1), color="magenta", lwd = 0.8) +
+    geom_point(size=5, color=teamcolors[idx]) +
+    geom_point(aes(y=V2), size=5, color="#69b3a2", alpha=0.3) +
+    hrbrthemes::theme_modern_rc(grid = "X,x,Y") +
+    coord_flip() +
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+    ylab("Value") +
+    xlab("Stats")+
+   labs(caption = reference, title = paste0(teamname, " Against League Average"), subtitle = "2020-21 Regular Season")
+
+# Parallel Coordinate
+# This is really versatile but I couldn't find a nice dataset to feed to :(
+dfs %>%
+  mutate(PTS. = PTS/Gms) %>%
+  #filter(Div == "NORTH") %>%
+  #filter(name == var1 | grepl(var2, name)) %>%
+  filter(name == var1) %>%
+  select(WOL, PDO, SV., SH., FO., PTS.) %>%
+GGally::ggparcoord(
+    columns = 2:6, groupColumn = 1,
+    #order = "Clumpy",
+    scale = "globalminmax",
+    #missing = "mean",
+    showPoints = TRUE,
+    title = paste0("Parallel Coordinate Plot for the ", teamname," Games"),
+    #mapping = ggplot2::aes(size = 2),
+    alphaLines = 0.3
+    ) +
+  #ggplot2::scale_size_identity() +
+  #scale_color_viridis_d() +
+  #scale_color_manual(values=c( "magenta", rep("grey", 6))) + #highlighting
+  scale_color_manual(values=c( "magenta", "grey")) + #highlighting
+  #scale_color_brewer(palette = "RdYlGn", name = "Team")+
+  theme_modern_rc()
+
+# example of parallel coordinate plot
+ GGally::ggparcoord(data = iris, columns = 1:4, groupColumn = 5, order = "anyClass")
+
+
+# Points percentage
+
+ dfs %>%
+  mutate(PTS. = PTS /(Gms*2)) %>%
+  filter(grepl(teamname, name) ) %>%
+  ggplot(aes(Gms, PTS.)) +
+  geom_line(stat = "identity", col = "magenta") +
+  geom_point(shape = 21, size = 5, aes( col = Team, fill = Team)) +
+  theme(legend.title = element_blank())+
+  theme_modern_rc(grid = "X,y,Y", ) +
+  # change background color
+  #theme(panel.background = element_rect(fill = "grey10", color = "grey10"), plot.background = element_rect(fill = "grey10")) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  ylab("PTS%") +
+  xlab("Games") +
+  scale_color_manual(values = teamcolors, aesthetics = c("color", "fill"))+
+  #scale_color_manual(values=c( "magenta", rep("grey", 6))) + #highlighting
+  labs(caption = reference, title = paste0(teamname," PTS%"), subtitle = "2020-21 Regular Season")
+
 
 
 # Old stuff ----
@@ -459,20 +588,23 @@ tracinggames %>%
 dfs %>%
   filter(grepl(teamname, name)) %>%
   ggplot(aes(Date, SV.)) +
-  geom_path(stat = "identity", aes(col = Team)) +
-  geom_point(shape = 21, size = 5, aes( col = Team, fill = Team)) +
+  geom_path(stat = "identity", col = teamcolors[idx]) +
+  geom_point(shape = 21, size = 5, col = teamcolors[idx], aes(fill = Result)) +
   geom_hline(aes(yintercept = qksummary$SV.), col = "magenta", label = "AVg")+
-  annotate("text", x = as.Date("2021-01-13", "%Y-%m-%d"), y = (qksummary$SV.+ 0.005), label = "League Avg.", col = "magenta")+
+  annotate("text", x = as.Date("2021-01-14", "%Y-%m-%d"), y = (qksummary$SV.+ 0.005), label = "League Avg.", col = "magenta")+
   theme(legend.title = element_blank())+
   #gghighlight(Date >= "2020-02-25")+
   theme_modern_rc(grid = "X,x,y,Y") +
+  theme(legend.position = "left")+
   scale_y_percent(breaks = scales::pretty_breaks(n = 10)) +
   scale_x_date(date_labels = "%d-%b", breaks = scales::pretty_breaks(n = 10)) +
   ylab("Save %") +
   xlab("Date") +
-  scale_color_manual(values = teamcolors, aesthetics = c("color", "fill"))+
+  scale_fill_brewer(palette = "RdYlGn", name = "Result")+
+  #scale_color_brewer(palette = "RdYlGn", name = "Result")+
+  scale_color_manual(values = teamcolors, aesthetics = c("color"))+
   labs(caption = reference, title = paste0(teamname," SV%"), subtitle = "2020-21 Regular Season")+
-  geom_label(col = "grey", fill = "#47404A",
+  geom_label(col = "snow3", fill = "grey13",
     data = dfs %>% filter(grepl(teamname, name), SV. < "0.8"),
     aes(label = Oppo),
     nudge_y =  0.01,
@@ -482,9 +614,10 @@ dfs %>%
 
 ggsave(
   paste0("plots/",teamname,"/svpctpergp", datetoday, ".png"),
-  width = 11,
-  height = 6,
-  dpi = 600
+  width = 13,
+  height = 8,
+  units = "in",
+  dpi = 320
 )
 
 # unrevised ----
@@ -495,8 +628,8 @@ dfs %>%
   #gghighlight(Date >= "2020-02-25")+
   theme_modern_rc(grid = "X,Y") +
   theme(legend.position = "none")+
-  scale_colour_manual(values =  c( "magenta","#2eb82e")) +
-  scale_fill_manual(values =  c("orchid","mediumspringgreen"),  aesthetics = c("fill")) +
+  scale_colour_manual(values =  c("#2eb82e", "brown1")) +
+  scale_fill_manual(values =  c("springgreen2", "firebrick1"),  aesthetics = c("fill")) +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
   scale_x_date(date_labels = "%d-%b", breaks = scales::pretty_breaks(n = 10)) +
   ylab("Net Goals") +
@@ -506,7 +639,7 @@ ggsave(
   paste0("plots/",teamname,"/goaldiff", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 
 # Sh% in funtion to sv% ----
@@ -543,7 +676,7 @@ ggsave(
  paste0("plots/",teamname,"/shpcttosvpct", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 
 # PDO per game ----
@@ -554,8 +687,8 @@ dfs %>%
   # trick to make lines glow :)
   #geom_line(stat = "identity", color = "magenta", aes(y= PDO), size = 3, alpha = 0.1) +
   #geom_line(stat = "identity", color = "magenta", aes(y= PDO), size = 2, alpha = 0.2) +
-  geom_line(stat = "identity", color = "magenta", aes(y= PDO), size = 1, alpha = 0.5) +
-  geom_point(aes(y = PDO, fill = Result, col = Result), shape = 21, size = 10) +
+  geom_line(stat = "identity", color = "magenta", aes(y= PDO), size = 0.8, alpha = 0.5) +
+  geom_point(aes(y = PDO, fill = Result), col = "magenta", shape = 21, size = 10) +
   #gghighlight(Date >= "2020-02-25", use_direct_label = FALSE)+
   theme_modern_rc(grid = "X,Y,y")+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6))+
@@ -579,7 +712,7 @@ ggsave(
   paste0("plots/",teamname,"/pdopergame", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 
 # Save% with results ----
@@ -598,7 +731,7 @@ dfs %>%
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10))+
   xlab("Game") +
   labs(caption = reference, title = paste0(teamname," SV% per Game"), subtitle = "2020-21 Regular Season") +
-  annotate("text", x = 1, y = (qksummary$SV.+ 0.005), label = "League Avg.", col = "magenta")
+  annotate("text", x = 1.5, y = (qksummary$SV.+ 0.005), label = "League Avg.", col = "magenta")
   # geom_label(
   #   col = "black",
   #   data = dfs %>% filter(SV. < "0.8"),
@@ -612,25 +745,29 @@ ggsave(
    paste0("plots/",teamname,"/savepergame", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 
 # Average shots % in results and location ----
 
 dfs %>%
+  mutate(Result = reorder(Result, SH., median)) %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Result,SH.)) +
-  geom_boxplot(color = "magenta", fill = teamcolors[idx]) +
+  select(Team, Result, SH.) %>%
+  ggplot(aes(x = Result, y = SH., fill = Result)) +
+  geom_boxplot(color = "magenta", fill = teamcolors[idx], notch = F) +
+  #geom_violin()+
   theme_modern_rc()+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6)) +
   xlab("Results") +
   labs(caption = reference, title = paste0(teamname," SH% in Relation to Results"), subtitle = "2020-21 Regular Season")
 
+
 ggsave(
   paste0("plots/",teamname,"/shpcttoresults", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 #
 dfs %>%
@@ -646,28 +783,31 @@ ggsave(
   paste0("plots/",teamname,"/shtoloc", datetoday, ".png"),
  width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 #
 # # SH% against all opponents
-# It does not make sense now ----
+
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Team,SH.)) +
+  ggplot(aes(Oppo, SH.)) +
   geom_bar(stat = "summary", fun = "mean", color = "magenta", fill = teamcolors[idx]) +
-  theme_ipsum_rc(grid = "Y,y")+
+  theme_modern_rc(grid = "Y,y")+
+  theme(strip.text = element_text(colour = 'snow1'))+
   facet_wrap(~Div, scales = "free_x")+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6)) +
+  xlab("Opponent")+
   labs(caption = reference, title = paste0(teamname," SH% for Each Opponent"), subtitle = "2020-21 Regular Season")
 
 ggsave(
   paste0("plots/",teamname,"/shpcttoteams", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
-#
 
+
+# not make sense now
 dfs %>%
   filter(grepl(teamname, name)) %>%
   ggplot(aes(Div,SH.)) +
@@ -680,12 +820,12 @@ ggsave(
   paste0("plots/",teamname,"/shpcttodiv", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
-#
+#not make sense now
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Conf,SH.)) +
+  ggplot(aes(Div.Oppo,SH.)) +
   geom_boxplot(color = "magenta", fill = teamcolors[idx]) +
   theme_modern_rc()+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6)) +
@@ -695,25 +835,26 @@ ggsave(
    paste0("plots/",teamname,"/shpctodiv", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 
 # SV% against opponents
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Conf, SV.)) +
-  geom_boxplot(color = "magenta", fill = teamcolors[idx]) +
-  theme_ipsum_rc()+
+  ggplot(aes(Oppo, SV.)) +
+  geom_boxplot(color = "magenta", fill = teamcolors[idx], notch = F) +
+  theme_modern_rc()+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6)) +
+  xlab("Opponent")+
   labs(caption = reference, title = paste0(teamname," SV% Against Conferences"), subtitle = "2020-21 Regular Season")
 
 ggsave(
    paste0("plots/",teamname,"/shpcttoconf", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
-#
+# not make sense now
 dfs %>%
   filter(grepl(teamname, name)) %>%
   ggplot(aes(Div, SV.)) +
@@ -726,16 +867,20 @@ ggsave(
   paste0("plots/",teamname,"/svpcttodiv", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 # Save% against each team ----
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Oppo, SV.)) +
-  geom_bar(stat = "summary", fun = "mean", color = "magenta", fill = teamcolors[idx], width = 0.8) +
+  group_by(Oppo) %>%
+  summarise(sv_mean = mean(SV.)) %>%
+  ggplot(aes(Oppo, sv_mean)) +
+  #geom_bar(stat = "summary", fun = "mean", color = "magenta", fill = teamcolors[idx], width = 0.8) +
+  geom_bar(stat = "summary", color = "magenta", fill = teamcolors[idx], width = 0.8)+
   geom_hline(yintercept = qksummary$SV., color = "magenta", lwd = 1.1)+
+  geom_text(size = 4, aes(label = sv_mean), col = "magenta", position = position_dodge(width = -1), vjust = -0.5)+
   annotate("text", x = 4, y = (qksummary$SV.+ 0.009), label = "League Avg.", col = "magenta")+
-  facet_wrap(~Div, scales = "free_x") +
+  #facet_wrap(~Div, scales = "free_x") +
   theme_modern_rc(grid = "Y,y")+
   theme(strip.text = element_text(colour = 'Grey'))+
   coord_cartesian(ylim = c(0.6, 1))+
@@ -747,7 +892,7 @@ ggsave(
  paste0("plots/",teamname,"/svpcttoteam", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 
 # Number of goals in relation to result of game ----
@@ -769,7 +914,7 @@ ggsave(
    paste0("plots/",teamname,"/resultpergoalsfor", datetoday, ".png"),
  width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 
 dfs %>%
@@ -789,7 +934,7 @@ ggsave(
  paste0("plots/",teamname,"/resultspergoalagainst", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )
 
 # WOL ----
@@ -800,13 +945,15 @@ dfs%>%
   geom_count(aes(Oppo, overall), col= "magenta")+
   scale_size(breaks = 1:10, name = "Nº of \nOcurrences")+
   theme_modern_rc()+
+  theme(strip.text = element_text(colour = 'snow2'))+
   facet_wrap(~Div, scales = "free_x")+
-  labs(caption = reference, title = paste0(teamname," Distribution of Wins/Losses across the league"),
+  xlab("Opponent")+
+  labs(caption = reference, title = paste0(teamname," Distribution of Wins/Losses Across the Division"),
        subtitle = "2020-21 Regular Season")
 
 ggsave(
    paste0("plots/",teamname,"/wolperteams", datetoday, ".png"),
   width = 11,
   height = 6,
-  dpi = 600
+  dpi = 320
 )

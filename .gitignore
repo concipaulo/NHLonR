@@ -7,11 +7,14 @@
 .Rproj.user
 *.gif
 evolving-hockey.R
+play_by_play.R
+plot_ice_rink.R
 Old/
 plots/
 MoneyPuckData/*
 NHLschedulescraper/plots/*
 NHLschedulescraper/core
+NHLschedulescraper/latlng.csv
 NHLschedulescraper/*.Rmd
 NHLschedulescraper/schedule_scrapper.R
 NHLschedulescraper/Data/*
