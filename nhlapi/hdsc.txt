@@ -1,0 +1,14 @@
+team.triCode|result.event|result.description|result.secondaryType|about.ordinalNum|about.periodTime|coordinates.x|coordinates.y
+TOR|Goal|William Nylander (15) Wrist Shot, assists: Mitchell Marner (43), Morgan Rielly (27)|Wrist Shot|1st|01:38|82|-2
+MTL|Shot|Joel Armia Tip-In saved by Jack Campbell|Tip-In|1st|10:39|-80|0
+TOR|Shot|Auston Matthews Backhand saved by Jake Allen|Backhand|1st|15:48|78|-1
+MTL|Shot|Phillip Danault Wrist Shot saved by Jack Campbell|Wrist Shot|2nd|03:44|-80|-0
+MTL|Shot|Josh Anderson Wrist Shot saved by Jack Campbell|Wrist Shot|2nd|06:37|-80|-0
+MTL|Shot|Artturi Lehkonen Tip-In saved by Jack Campbell|Tip-In|2nd|11:00|-80|-0
+TOR|Shot|Wayne Simmonds Wrist Shot saved by Jake Allen|Wrist Shot|2nd|17:06|80|-0
+TOR|Shot|Auston Matthews Tip-In saved by Jake Allen|Tip-In|2nd|19:11|73|-8
+TOR|Shot|Auston Matthews Wrist Shot saved by Jake Allen|Wrist Shot|2nd|19:19|71|-9
+TOR|Shot|Auston Matthews Backhand saved by Jake Allen|Backhand|3rd|00:18|82|4
+MTL|Missed Shot|Phillip Danault Wide of Net Jack Campbell|NA|3rd|07:08|-87|-6
+TOR|Goal|Adam Brooks (3) Wrist Shot, assists: Jason Spezza (16), Justin Holl (16)|Wrist Shot|3rd|08:15|79|0
+TOR|Shot|John Tavares Wrist Shot saved by Jake Allen|Wrist Shot|3rd|12:27|73|0
