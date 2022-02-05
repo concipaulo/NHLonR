@@ -33,7 +33,7 @@ teamsfiles <<- str_to_title(str_replace_all(nhlteams, "[:punct:]", " "))
 teamsfiles <<- str_replace_all(teamsfiles, "Phoenix", "Arizona")
 teamsfiles <<- str_replace(teamsfiles, "St ", "St. ")
 
-teams_abrv <- read.csv("~/NHLonR/teams_abrev2.csv", stringsAsFactors = F)
+teams_abrv <- read.csv("~/NHLonR/teams_abrev.csv", stringsAsFactors = F)
 teams_abrv <<- as_tibble(teams_abrv)
 datetoday <<- Sys.Date()
 reference <<- sprintf("Source: www.quanthockey.com, %s", datetoday)
@@ -51,7 +51,7 @@ getteamdata <- function(ii, jj = ii){
     Sys.sleep(2) # waiting time so that the website doesn't blck your ip
 webpage <-
       read_html(
-        paste0("https://www.quanthockey.com/nhl/team-game-logs/", nhlteams[i],"-2020-21-nhl-game-log.html"))
+        paste0("https://www.quanthockey.com/nhl/team-game-logs/", nhlteams[i],"-2021-22-nhl-game-log.html"))
 
     # Teams data
     webdata <- webpage %>%

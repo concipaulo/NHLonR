@@ -6,10 +6,14 @@ library(ggrepel)
 
 # Functions ----
 setenv <- function(){
-teamcolors <<- c("#b5985a", "#8c2633", "#fcb514", "#002654", "#ce1126", "#76232F", "#cc8a00", "#6f263d",
-            "#041e42", "#006341", "#c8102e", "#fc4c02", "#b9975b", "#a2aaad", "#154734", "#a6192e",
-            "#ffb81c", "#c8102e", "#003087", "#0033a0", "#c69214", "#fa4616", "#ffb81c", "#006272",
-            "#041e42", "#00205b", "#00205b", "#008852", "#b9975b", "#041e42", "#041e42")
+teamcolors <<- c("ANA" = "#111111","ARI" = "#b43143","BOS" = "#c98e03","BUF" = "#00224d","CGY" = "#ce1126",
+                "CAR" = "#76232F","CHI" = "#ec132c","COL" = "#6f263d",
+                "CBJ" = "#041e42","DAL" = "#008053","DET" = "#a50d27","EDM" = "#fc4c02","FLA" = "#b9975b",
+                "LAK" = "#a2aaad","MIN" = "#154734","MTL" = "#851425",
+                "NSH" = "#ffb81c","NJD" = "#a50d27","NYI" = "#003087","NYR" = "#0049e6","OTT" = "#c69214",
+                "PHI" = "#fa4616","PIT" = "#ffb81c","SJS" = "#008599",
+                "STL" = "#002f87","TBL" = "#002d80","TOR" = "#00205b","VAN" = "#008852","VGK" = "#3f4e5a",
+                "WSH" = "#ec1337","WPG" = "#031630")
 
 nhlteams <<- c("anaheim-ducks","phoenix-coyotes", "boston-bruins", "buffalo-sabres",
              "calgary-flames", "carolina-hurricanes", "chicago-blackhawks", "colorado-avalanche",
@@ -118,6 +122,7 @@ readplayerdata <- function(ii, jj = ii, dia){
 
 options(warn=-1)
 # teams names
+
 teams <- nhlteams[ii:jj]
 
 tname <- str_to_title(str_replace_all(teams, "-", " "))
@@ -125,7 +130,7 @@ tname <- str_replace(tname, "Phoenix", "Arizona")
 tname <- str_replace(tname, "St ", "St. ")
 
 #date to read, you can change if you had download previously
-dtdata <- dia
+#dtdata <- dia
 # creating a function to read all files in one go
 readplayersdata <- function(name, day){
 
@@ -146,29 +151,38 @@ readplayersdata <- function(name, day){
 teams_abrv <- read_csv("~/NHLonR/teams_abrev2.csv", col_types = cols(.default = col_character()))
 
 #creating a scafold to list the teams to read and days
-#tname <- tname
+#dia <- datetoread
 
-scafold <- tibble(name = tname,
-                  day = dia) %>% tidyr::unnest(cols = c("name", "day"))
+#scafold <- tibble(name = tname,
+#                  day = dia) %>% tidyr::unnest(cols = c("name", "day"))
+
+scafold <- crossing(tname, dia) %>%
+  rename(name = tname, day = dia)
 #reading all files into a huge table, the data will be nested in the "data" variable
 huge.table <- scafold %>%
   mutate(data = purrr::map2(name, day, ~readplayersdata(.x,.y)))
 #unnesting the data
-dtset <- huge.table%>% dplyr::select(data) %>% tidyr::unnest(cols = c(data))
+dtset <- huge.table%>% dplyr::select(data, day) %>% tidyr::unnest(cols = c(data))
+
 #adding new variables abbreviation of team name, div, conf
-for (i in 1:nrow(dtset)) {
-  for (j in 1:nrow(teams_abrv)) {
-    if (dtset[i, 2] == teams_abrv[j, 1]) {
-      dtset[i,51] <- teams_abrv[j, 4]
-      dtset[i,52] <- teams_abrv[j, 3]
-      dtset[i,53] <- teams_abrv[j, 2]
-    }
-  }
-}
+dtset <- left_join(dtset, teams_abrv, by = c("Team" = "Teams"))
+
+# for (i in 1:nrow(dtset)) {
+#   for (j in 1:nrow(teams_abrv)) {
+#     if (dtset[i, 2] == teams_abrv[j, 1]) {
+#       dtset[i,51] <- teams_abrv[j, 4]
+#       dtset[i,52] <- teams_abrv[j, 3]
+#       dtset[i,53] <- teams_abrv[j, 2]
+#     }
+#   }
+# }
+
+
 #renaming the new columns
 #colnames(dtset)[52] <- "CONF"
 #colnames(dtset)[53] <- "DIV"
-colnames(dtset)[53] <- "TM"
+#colnames(dtset)[53] <- "TM"
+dtset <- dtset %>% rename(TM = Team.y)
 
 tabbr <- dtset$TM
 tabbr <- str_pad(tabbr, width = 4, side = "left", pad = "(")
@@ -190,7 +204,8 @@ getplayerdata(1,31)
 getteamid("leafs")
 
 #dates of downloaded data: 2021-01-30
-datetoread <- "2021-01-30"
+datetoread <- c("2021-01-30", "2021-02-11")
+
 readplayerdata(1, 31, datetoread)
 
 #Plotting ----
@@ -201,6 +216,7 @@ readplayerdata(1, 31, datetoread)
 # creating a new column to hold the position in the table
 # creating a factor of the id and name so they show up from top to bottom
 leadergoalsper60 <- dataset %>%
+                filter(day == max(day)) %>%
                 filter(ESGp60 >= 0.6, Pos != "G") %>%
                 dplyr::select(Name, ESGp60, GP, TM)%>%
                 arrange(desc(ESGp60)) %>%
@@ -211,6 +227,7 @@ leadergoalsper60 <- dataset %>%
 
 #Summary
 qksummary <- dataset %>%
+  group_by(day) %>%
   summarise_at(vars(Age:FO., -Pos), mean, na.rm = TRUE) %>%
   add_column(Name = "League Average")
 
@@ -218,18 +235,19 @@ qksummary <- dataset %>%
 
 # Even strength goals per 60 ----
 dataset %>%
-  filter(ESGp60 >= 0.6, Pos != "G") %>%
+  filter(ESGp60 >= 0.6, Pos != "G", day == max(day)) %>%
+  filter(GP >= 10) %>%
   dplyr::select(Player, ESGp60, TM)%>%
-  add_row(Player = qksummary$Name, ESGp60 = round(qksummary$ESGp60, 3)) %>%
+  add_row(Player = qksummary$Name, ESGp60 = round(qksummary$ESGp60[2], 3)) %>%
   arrange(desc(ESGp60)) %>%
   mutate(id = row_number())%>%
   mutate(Player = fct_reorder(Player, id),
          Player = fct_rev(Player))%>%
   filter(id <= 15 | Player == "League Average") %>%
   ggplot(aes(ESGp60, Player, label = ESGp60))+
-  geom_segment(aes(x=0, y=Player, xend = ESGp60, yend = Player), col = "grey")+
-  geom_point(shape = 19, size = 5, col = "grey")+
-  geom_text(color = 'grey', size = 3, nudge_x = 0.4)+
+  geom_segment(aes(x=0, y=Player, xend = ESGp60, yend = Player), col = "magenta")+
+  geom_point(shape = 19, size = 5, col = "magenta")+
+  geom_text(color = 'snow', size = 3, nudge_x = 0.2)+
   theme_modern_rc()+
   xlab("Even Strength Goals per 60")+
   ylab("")+
@@ -249,12 +267,12 @@ dataset %>%
   mutate(Player = fct_reorder(Player, Rk),
          Player = fct_rev(Player))%>%
   filter(Rk <= 15) %>%
-  add_row()
+  #add_row() %>%
   ggplot(aes(G, Player, label = G))+
-  geom_segment(aes(x=3, y= Player, xend = G, yend = Player), col = "black")+
-  geom_point(shape = 19, size = 5, col = "black")+
-  geom_text(color = 'black', size = 3, nudge_x = 0.15)+
-  theme_ipsum_rc()+
+  geom_segment(aes(x=3, y= Player, xend = G, yend = Player), col = "magenta")+
+  geom_point(shape = 19, size = 5, col = "magenta")+
+  geom_text(color = 'snow', size = 3, nudge_x = 0.35)+
+  theme_modern_rc()+
   xlab("Goals")+
   ylab("")+
   labs(caption = paste0(reference,"\n"),
@@ -274,10 +292,10 @@ dataset %>%
          Player = fct_rev(Player))%>%
   filter(Rk <= 15) %>%
   ggplot(aes(A, Player, label = A))+
-  geom_segment(aes(x=3, y= Player, xend = A, yend = Player), col = "black")+
-  geom_point(shape = 19, size = 5, col = "black")+
-  geom_text(color = 'black', size = 3, nudge_x = 0.25)+
-  theme_ipsum_rc()+
+  geom_segment(aes(x=3, y= Player, xend = A, yend = Player), col = "magenta")+
+  geom_point(shape = 19, size = 5, col = "magenta")+
+  geom_text(color = 'snow', size = 3, nudge_x = 0.55)+
+  theme_modern_rc()+
   xlab("Assists")+
   ylab("")+
   labs(caption = paste0(reference,"\n"),
@@ -297,10 +315,10 @@ dataset %>%
          Player = fct_rev(Player))%>%
   filter(Rk <= 15) %>%
   ggplot(aes(P, Player, label = P))+
-  geom_segment(aes(x=7, y= Player, xend = P, yend = Player), col = "black")+
-  geom_point(shape = 19, size = 5, col = "black")+
-  geom_text(color = 'black', size = 3, nudge_x = 0.3)+
-  theme_ipsum_rc()+
+  geom_segment(aes(x=7, y= Player, xend = P, yend = Player), col = "magenta")+
+  geom_point(shape = 19, size = 5, col = "magenta")+
+  geom_text(color = 'snow', size = 3, nudge_x = 0.7)+
+  theme_modern_rc()+
   xlab("Points")+
   ylab("")+
   labs(caption = paste0(reference,"\n"),
@@ -314,7 +332,7 @@ ggsave(
 
 # Leader shoting% ----
 dataset %>%
-  filter(GP > 5) %>%
+  filter(GP > 10, Div == "NORTH") %>%
   dplyr::select(Player, SH., TM)%>%
   arrange(desc(SH.)) %>%
   mutate(Rk = row_number())%>%
@@ -322,13 +340,13 @@ dataset %>%
          Player = fct_rev(Player))%>%
   filter(Rk <= 15) %>%
   ggplot(aes(SH., Player, label = SH.))+
-  geom_segment(aes(x=0.2, y= Player, xend = SH., yend = Player), col = "black")+
-  geom_point(shape = 19, size = 5, col = "black")+
-  geom_text(color = 'black', size = 3, nudge_x = 0.05)+
-  theme_ipsum_rc()+
+  geom_segment(aes(x=0.18, y= Player, xend = SH., yend = Player), col = "magenta")+
+  geom_point(shape = 19, size = 5, col = "magenta")+
+  geom_text(aes(label = round(SH.,3)), color = 'snow', size = 3, nudge_x = 0.005)+
+  theme_modern_rc()+
   xlab("Points")+
   ylab("")+
-  labs(caption = paste0(reference,"\n 5 or more games played"),
+  labs(caption = paste0(reference,"\n 10 or more games played"),
        title = paste0("Shoting Percentage"),
        subtitle = "2020-21 Regular Season")
 
@@ -348,7 +366,7 @@ dataset %>%
   ggplot(aes(ESAp60, Player, label = ESAp60))+
   geom_segment(aes(x=1.5, y=Player, xend = ESAp60, yend = Player), col = "black")+
   geom_point(shape = 19, size = 5, col = "black")+
-  geom_text(color = 'black', size = 3.5, nudge_x = 0.35)+
+  geom_text(color = 'black', size = 3.5, nudge_x = 0.65)+
   theme_ipsum_rc()+
   xlab("Even Strength Assists per 60")+
   ylab("")+
@@ -362,7 +380,7 @@ paste0("plots/ESAssistssper60 ", datetoday, ".png"),
 
 # Even strength points per 60 ----
 dataset %>%
-  filter(ESPp60 >= 1.5 , Pos != "G") %>%
+  filter(ESPp60 >= 1.5 , Pos != "G", GP > 10) %>%
   dplyr::select(Player, ESPp60)%>%
   arrange(desc(ESPp60)) %>%
   mutate(id = row_number())%>%
@@ -412,7 +430,7 @@ ggsave(
 
 # Goals Per 60 ----
 dataset %>%
-  filter(Gp60 >= 1.5, Pos != "G") %>%
+  filter(Gp60 >= 1.5, Pos != "G", GP >= 10) %>%
   dplyr::select(Player, Gp60)%>%
   arrange(desc(Gp60)) %>%
   mutate(id = row_number())%>%
@@ -422,7 +440,7 @@ dataset %>%
   ggplot(aes(Gp60, Player, label = Gp60))+
   geom_segment(aes(x=1.5, y=Player, xend = Gp60, yend = Player), col = "black")+
   geom_point(shape = 19, size = 5, col = "black")+
-  geom_text(color = 'black', size = 3.5, nudge_x = 0.04)+
+  geom_text(color = 'black', size = 3.5, nudge_x = 0.09)+
   scale_x_continuous(breaks = scales::pretty_breaks(n = 6))+
   theme_ipsum_rc()+
   xlab("Goals per 60")+
@@ -466,10 +484,10 @@ dataset%>%
   #filter(GP >=30, ES >= 300) %>%
   ggplot(aes(ES, ESAp60)) +
   geom_point()+
-  geom_smooth()+
+  geom_smooth(color = "magenta", se = F)+
   scale_x_time(labels = scales::time_format("%M:%S"), breaks = scales::pretty_breaks(n = 10))+
   scale_y_continuous(breaks = scales::pretty_breaks(n = 6))+
-  theme_ipsum_rc()+
+  theme_modern_rc()+
   geom_label_repel(
     col = "black",
     data = dataset %>% filter(ESAp60 > 6),

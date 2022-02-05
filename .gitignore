@@ -12,14 +12,11 @@ plot_ice_rink.R
 Old/
 plots/
 MoneyPuckData/*
-NHLschedulescraper/plots/*
-NHLschedulescraper/core
-NHLschedulescraper/latlng.csv
-NHLschedulescraper/*.Rmd
-NHLschedulescraper/schedule_scrapper.R
-NHLschedulescraper/Data/*
-NHLschedulescraper/Old/*
-NHLschedulescraper/*.png
-NHLschedulescraper/Player\ Analysis/Data/*
-NHLschedulescraper/Player\ Analysis/plots/*
-
+NHLschedulescraper/*
+scraperHR/*
+python_scraper/*
+postgame/*
+moneypuckShots/*
+nhlapi/data/*
+nhlapi/plots/*
+nhlapi/*.csv
