@@ -37,6 +37,7 @@ teams_abrv <- read.csv("~/NHLonR/teams_abrev.csv", stringsAsFactors = F)
 teams_abrv <<- as_tibble(teams_abrv)
 datetoday <<- Sys.Date()
 reference <<- sprintf("Source: www.quanthockey.com, %s", datetoday)
+season_start <<- as.Date("2021-10-12", format = "%Y-%m-%d")
 
 }
 
@@ -55,45 +56,53 @@ webpage <-
 
     # Teams data
     webdata <- webpage %>%
-      html_nodes("td") %>%
-      html_text()
+      html_table()
+
+    webdata1 <- webdata[[1]] %>%
+      row_to_names(1) %>%
+      type_convert(col_types = cols(
+        .default = col_double(),
+        Date = col_date(format = "%Y-%m-%d"),
+        Opponent = col_character(),
+        Loc. = col_character(),
+        Result = col_character(),
+        PDO = col_number(),
+        `PDO-A` = col_number(),
+        `SH%` = col_number(),
+        `SH%-A` = col_number(),
+        `FO%` = col_number(),
+        `SV%` = col_number(),
+        `SV%-A` = col_number()
+        ))
+
+  webdata2 <- webdata1 %>%
+    clean_names()
+
+  dfs <- webdata2
+
+# ==========
     teamname <- webpage %>%
       html_nodes("title") %>%
       html_text()
-    titles <-  webpage %>%
-      html_nodes("th") %>%
-      html_text()
 
-    #cleaning stats names
-    stat_team <- gsub("%", ".", titles[9:35])
-    stat_team <- gsub("-", "", stat_team)
 
     # extracting team name
     teamname <- str_remove(teamname, "( Ga.*)")
     teamname <<- teamname
 
-    # Creating a data frame
-    dfs <- matrix(
-      webdata,
-      ncol = 27,
-      byrow = T,
-      dimnames = list(NULL, stat_team)
-    )
-
-    dfs <- as_tibble(dfs)
-
-    dfs <- rename(dfs, Gms = Rk)
-    dfs$Gms <- as.numeric(as.character(dfs$Gms))
+ # ---------
+    dfs <- rename(dfs, Gms = rk)
+    #dfs$Gms <- as.numeric(as.character(dfs$Gms))
     dfs$Gms <- rev(dfs$Gms)
-    dfs$Date <- as.Date(dfs$Date, format = "%Y-%m-%d")
-    dfs$GD <- as.numeric(as.character(dfs$GD))
-    dfs$PDO <- as.numeric(sub("%","",dfs$PDO))/100
-    dfs$PDOA <- as.numeric(sub("%","",dfs$PDOA))/100
-    dfs$SH. <- as.numeric(sub("%","",dfs$SH.))/100
-    dfs$SH.A <- as.numeric(sub("%","",dfs$SH.A))/100
-    dfs$FO. <- as.numeric(sub("%","",dfs$FO.))/100
-    dfs$SV. <- as.numeric(sub("%","",dfs$SV.))/100
-    dfs$SV.A <- as.numeric(sub("%","",dfs$SV.A))/100
+    #dfs$Date <- as.Date(dfs$Date, format = "%Y-%m-%d")
+    #dfs$GD <- as.numeric(as.character(dfs$GD))
+    dfs$PDO <- dfs$pdo/100
+    dfs$PDOA <- dfs$pdo_a/100
+    dfs$SH. <- dfs$sh_percent/100
+    dfs$SH.A <- dfs$sh_percent_a/100
+    dfs$FO. <- dfs$fo_percent/100
+    dfs$SV. <- dfs$sv_percent/100
+    dfs$SV.A <- dfs$sv_percent_a/100
     dfs$name <- teamname
 
     dfs <- dfs %>%
@@ -106,23 +115,23 @@ webpage <-
     dfs$PTS <- 0
     sum = 0
     for (i in nrow(dfs):1) {
-      if (dfs$Result[i] == "Win" | dfs$Result[i] == "OT Win"| dfs$Result[i] == "SO Win") {
+      if (dfs$result[i] == "Win" | dfs$result[i] == "OT Win"| dfs$result[i] == "SO Win") {
         sum = sum + 2
         dfs$PTS[i] = sum
       }
-      if(dfs$Result[i] == "OT Loss" | dfs$Result[i] == "SO Loss"){
+      if(dfs$result[i] == "OT Loss" | dfs$result[i] == "SO Loss"){
         sum = sum + 1
         dfs$PTS[i] = sum
       }
-      if(dfs$Result[i] == "Loss" ){
+      if(dfs$result[i] == "Loss" ){
         dfs$PTS[i] = sum
       }
     }
 
-    dfs$Result <- as.factor(str_trim(as.character(dfs$Result)))
+    dfs$result <- as.factor(str_trim(as.character(dfs$result)))
     dfs$overall <- NA
-    dfs$overall <- fct_collapse(dfs$Result, Win = c("Win", "OT Win", "SO Win"), Loss = c("Loss"), OL = c("SO Loss", "OT Loss"))
-    dfs$WOL <- ifelse(dfs$GD > 0, "Win", "Loss")
+    dfs$overall <- fct_collapse(dfs$result, Win = c("Win", "OT Win", "SO Win"), Loss = c("Loss"), OL = c("SO Loss", "OT Loss"))
+    dfs$WOL <- ifelse(dfs$gd > 0, "Win", "Loss")
     #writing file on the disk
     write.csv(dfs, file = paste0("Data/",teamname,datetoday,".csv"), row.names = F)
 
@@ -130,11 +139,15 @@ webpage <-
 }
 
 # Retrieve standings
-getstandings <- function(v = "d", sd = "202021", ed = sd){
+getstandings <- function(v = "l", sd = "202122", ed = sd){
 
   # v is the variable that control if the standings is per 'd'ivision or 'l'eague
   #sd = start date and ed = end date, as it is will return the most recent but can be passed any date
   # from the 2020-21 season in the following order %Y-%m-%d.
+
+  # v = "l"
+  # sd = "202122"
+  # ed = "202122"
 
   webpage <-
       read_html(
@@ -142,46 +155,47 @@ getstandings <- function(v = "d", sd = "202021", ed = sd){
 
     # Teams data
     webdata <- webpage %>%
-      html_nodes("td") %>%
-      html_text()
+      html_table()
 
-    titles <-  webpage %>%
-      html_nodes("th") %>%
-      html_text()
+    webdata1 <- webdata[[1]] %>%
+      row_to_names(row_number = 1) %>%
+      clean_names() %>%
+      type_convert(cols(
+        .default = col_double(),
+        team = col_character(),
+        pdo = col_number(),
+        pdo_a = col_number(),
+        pp_percent = col_number(),
+        pk_percent = col_number(),
+        sh_percent = col_number(),
+        sh_percent_a = col_number(),
+        fo_percent = col_number(),
+        sv_percent = col_number(),
+        sv_percent_a = col_number()
+      )) %>%
+      mutate(
+        pdo = pdo/100,
+        pdo_a = pdo_a/100,
+        pp_percent = pp_percent/100,
+        pk_percent = pk_percent/100,
+        sh_percent = sh_percent/100,
+        sh_percent_a = sh_percent_a/100,
+        fo_percent = fo_percent/100,
+        sv_percent = sv_percent/100,
+        sv_percent_a = sv_percent_a/100
+      )
 
-     #cleaning stats names
-    stat_team <- gsub("%", ".", titles[10:45])
-    stat_team <- gsub("-", "", stat_team)
-    stat_team <- gsub("/", "p", stat_team)
 
-       # Creating a data frame
-    dfg <- matrix(
-      webdata,
-      ncol = 36,
-      byrow = T,
-      dimnames = list(NULL, stat_team)
-    )
-
-    dfg <- as_tibble(dfg)
+    dfg <- webdata1
 
     abrv <- rename(teams_abrv, Abbrv = Team)
 
-    dfg <- left_join(dfg, abrv, by = c("Team" = "Teams"))
-
-# such a hassle just to convert the number to the right class ughh
-# probably can just call type_convert on the whole df
-    dfg$PDO <- as.numeric(sub("%","",dfg$PDO))/100
-    dfg$PDOA <- as.numeric(sub("%","",dfg$PDOA))/100
-    dfg$SH. <- as.numeric(sub("%","",dfg$SH.))/100
-    dfg$SH.A <- as.numeric(sub("%","",dfg$SH.A))/100
-    dfg$FO. <- as.numeric(sub("%","",dfg$FO.))/100
-    dfg$SV. <- as.numeric(sub("%","",dfg$SV.))/100
-    dfg$SV.A <- as.numeric(sub("%","",dfg$SV.A))/100
+    dfg <- left_join(dfg, abrv, by = c("team" = "Teams"))
 
     cls <- cols(
       .default = col_double(),
       Rk = col_integer(),
-      Team = col_character(),
+      team = col_character(),
       Abbrv = col_character(),
       Div = col_factor(),
       Conf = col_character(),
@@ -200,13 +214,13 @@ readteamdata <- function(team=teamname, date=datetoday){
 
   cls <- cols(
     .default = col_double(),
-    Opponent = col_character(),
-    Loc. = col_factor(levels = c("Away", "Home")),
-    Result = col_factor(levels = rev(c("Win", "OT Win", "SO Win", "SO Loss", "OT Loss", "Loss"))),
+    opponent = col_character(),
+    loc = col_factor(levels = c("Away", "Home")),
+    result = col_factor(levels = rev(c("Win", "OT Win", "SO Win", "SO Loss", "OT Loss", "Loss"))),
     Conf = col_character(),
     Div = col_factor(),
     Team = col_character(),
-    Date = col_date(format = "%Y-%m-%d"),
+    date = col_date(format = "%Y-%m-%d"),
     overall = col_factor(levels = c("Win", "Loss", "OL")),
     WOL = col_factor(),
     Gms = col_integer(),
@@ -234,7 +248,7 @@ quicksummary <- function(i = "league"){
 
   if(i == "league"){
   qksummary <<- dfs %>%
-  summarise_at(vars(GF:BSD), mean, na.rm = TRUE) %>%
+  summarise_at(vars(gf:bs_d), mean, na.rm = TRUE) %>%
   add_column(name = "League Average")
   }
   if(i != "league") {
@@ -252,8 +266,8 @@ quicksummary <- function(i = "league"){
   last10 <- fct_count(dummydf$overall[1:10])
 
   lastmonth <- dummydf %>%
-    select(Date, overall) %>%
-    filter(Date >= datetoday - months(1)) %>%
+    select(date, overall) %>%
+    filter(date >= datetoday - months(1)) %>%
     select(overall) %>%
     as_vector() %>%
     fct_count() %>%
@@ -261,10 +275,10 @@ quicksummary <- function(i = "league"){
     as_vector() %>%
     str_c(as.character(), collapse = "-")
 
-  dtsince <- "2021-01-13"
+  dtsince <- "2022-01-01"
   sncdate <- dummydf %>%
-    select(Date, overall) %>%
-    filter(Date >= dtsince) %>%
+    select(date, overall) %>%
+    filter(date >= dtsince) %>%
     select(overall) %>%
     as_vector() %>%
     fct_count() %>%
@@ -379,8 +393,8 @@ rankings <- left_join(rankings, goals, by = "Team")
 
 setenv()
 
-# Retrieve data from all team, can take a minute
-getteamdata(1,31)
+# Retrieve data for all teams, can take a minute
+getteamdata(1,32)
 
 # Read data from disk, can read from a single team or a vector with team names
 # The second argument is the date, which assumes is the datetoday by default.
@@ -396,13 +410,13 @@ getstandings()
 # Teams average ----
 teams_avg <- dfs %>%
   group_by(name) %>%
-  summarise_at(vars(GF:BSD), mean, na.rm = TRUE)
+  summarise_at(vars(gf:bs_d), mean, na.rm = TRUE)
 
 # victories that counts on the standins i.e. no SO Win ----
 victories <- dfs %>%
-  select(name:Result, Team:WOL) %>%
+  select(name:result, Team:WOL) %>%
   group_by(Team, Gms, Div) %>%
-  summarise(wins = fct_count(Result)) %>%
+  summarise(wins = fct_count(result)) %>%
   filter(wins$f == "Win" | wins$f == "OT Win") %>%
   summarise(win = sum(wins$n)) %>%
   dplyr::ungroup() %>%
@@ -412,7 +426,7 @@ dfs <- left_join(dfs, victories, by = c("Team", "Gms"))
 
 # Rankings between the division ----
 tracinggames <- dfs %>%
-  select(name:Date, Team:win) %>%
+  select(name:date, Team:win) %>%
   group_by(Gms, Div) %>%
   arrange(desc(PTS), win) %>%
   mutate(rankings = row_number())
@@ -422,7 +436,7 @@ oppo <- teams_abrv %>%
   select(Teams:Div) %>%
   rename(Oppo = Team, Div.Oppo = Div)
 
-dfs <- left_join(dfs, oppo, by = c("Opponent" = "Teams"))
+dfs <- left_join(dfs, oppo, by = c("opponent" = "Teams"))
 
 # League average  ----
 # stole from the internet lol
@@ -435,9 +449,9 @@ stands <- stands %>%
 
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Date, PTS)) +
+  ggplot(aes(date, PTS)) +
       geom_line(lwd = 1, col = teamcolors[idx])+
-      geom_point(shape = 21, size = 6, alpha = 0.95, aes(fill= Result, col=Result, group = seq_along(Date)))+
+      geom_point(shape = 21, size = 6, alpha = 0.95, aes(fill= result, col=result, group = seq_along(date)))+
       #gghighlight(Date >= "2021-02-01")+
       theme_modern_rc(grid = "X,x,Y,y")+
       xlab("Games") +
@@ -459,7 +473,7 @@ dfs %>%
 
 # Route ---
 tracinggames %>%
-  filter(Div == "NORTH") %>%
+  filter(Div == "ATLANTIC") %>%
   ggplot(aes(Gms, rankings, group = Team)) +
       geom_path(lwd = 1, aes(col = Team))+
       geom_point(shape = 21, size = 5, alpha = 0.95, aes(fill = Team, col = Team))+
@@ -474,9 +488,9 @@ tracinggames %>%
       labs(caption = reference, title = paste0("Division Rankings"), subtitle = "2020-21 Regular Season")
 
 tracinggames %>%
-  filter(Div == "NORTH") %>%
+  filter(Div == "ATLANTIC") %>%
   #filter(Team == "TOR" | Team == "MTL"| Team == "EDM") %>%
-  ggplot(aes(Date, PTS, group = Team))+
+  ggplot(aes(date, PTS, group = Team))+
       geom_line(lwd = 1, aes(col = Team))+
       geom_point(shape = 21, size = 5, alpha = 0.99, aes(fill = Team, col = Team))+
       facet_wrap(vars(Div))+
@@ -495,12 +509,12 @@ tracinggames %>%
 var1 <- teamname
 var2 <- "League"
 stands %>%
-  filter(Team == var1 | grepl(var2, Team)) %>%
-  dplyr::select(GP, W, L, PTS, GF, GA) %>%
+  filter(team == var1 | grepl(var2, team)) %>%
+  dplyr::select(gp, w, l, pts, gf, ga) %>%
   t() %>% as.data.frame() %>%
   #row_to_names(1) %>%
   rownames_to_column() %>%
-  arrange(V2) %>%
+  arrange(V1) %>%
   mutate(rowname=factor(rowname, rowname)) %>%
   ggplot( aes(x=rowname, y=V1)) +
     geom_segment( aes(x=rowname ,xend=rowname, y=V2, yend=V1), color="magenta", lwd = 0.7) +
@@ -515,8 +529,8 @@ stands %>%
 
 # small numbers, like sv., pdo., sh., ...
 stands %>%
-  filter(Team == var1 | grepl(var2, Team)) %>%
-  dplyr::select(SV., PDO, SH., FO., PTSpGP) %>%
+  filter(team == var1 | grepl(var2, team)) %>%
+  dplyr::select(sv_percent, pdo, sh_percent, fo_percent, pts_gp) %>%
   t() %>% as.data.frame() %>%
   #row_to_names(1) %>%
   rownames_to_column() %>%
@@ -544,6 +558,7 @@ dfs %>%
 GGally::ggparcoord(
     columns = 2:6, groupColumn = 1,
     #order = "Clumpy",
+    order = "anyClass",
     scale = "globalminmax",
     #missing = "mean",
     showPoints = TRUE,
@@ -588,11 +603,11 @@ GGally::ggparcoord(
 # Sv%
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Date, SV.)) +
+  ggplot(aes(date, SV.)) +
   geom_path(stat = "identity", col = teamcolors[idx]) +
-  geom_point(shape = 21, size = 5, col = teamcolors[idx], aes(fill = Result)) +
-  geom_hline(aes(yintercept = qksummary$SV.), col = "magenta", label = "AVg")+
-  annotate("text", x = as.Date("2021-01-14", "%Y-%m-%d"), y = (qksummary$SV.+ 0.005), label = "League Avg.", col = "magenta")+
+  geom_point(shape = 21, size = 5, col = teamcolors[idx], aes(fill = result)) +
+  geom_hline(aes(yintercept = qksummary$sv_percent/100), col = "magenta", label = "Avg")+
+  annotate("text", x = as.Date("2021-10-10", "%Y-%m-%d"), y = (qksummary$sv_percent/100+ 0.005), label = "League Avg.", col = "magenta")+
   theme(legend.title = element_blank())+
   #gghighlight(Date >= "2020-02-25")+
   theme_modern_rc(grid = "X,x,y,Y") +
@@ -604,14 +619,14 @@ dfs %>%
   scale_fill_brewer(palette = "RdYlGn", name = "Result")+
   #scale_color_brewer(palette = "RdYlGn", name = "Result")+
   scale_color_manual(values = teamcolors, aesthetics = c("color"))+
-  labs(caption = reference, title = paste0(teamname," SV%"), subtitle = "2020-21 Regular Season")+
-  geom_label(col = "snow3", fill = "grey13",
-    data = dfs %>% filter(grepl(teamname, name), SV. < "0.8"),
-    aes(label = Oppo),
-    nudge_y =  0.01,
-    nudge_x =  -0.01,
-    show.legend = FALSE
-  )
+  labs(caption = reference, title = paste0(teamname," SV%"), subtitle = "2020-21 Regular Season")
+  # geom_label(col = "snow3", fill = "grey13",
+  #   data = dfs %>% filter(grepl(teamname, name), SV. < "0.8"),
+  #   aes(label = oppo),
+  #   nudge_y =  0.01,
+  #   nudge_x =  -0.01,
+  #   show.legend = FALSE
+  # )
 
 ggsave(
   paste0("plots/",teamname,"/svpctpergp", datetoday, ".png"),
@@ -624,13 +639,13 @@ ggsave(
 # unrevised ----
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Date, fill = WOL, color = WOL)) +
-  geom_col(aes(y = GD), width = 0.9) +
+  ggplot(aes(date, fill = WOL, color = WOL)) +
+  geom_col(aes(y = gd), width = 0.9) +
   #gghighlight(Date >= "2020-02-25")+
   theme_modern_rc(grid = "X,Y") +
   theme(legend.position = "none")+
-  scale_colour_manual(values =  c("#2eb82e", "brown1")) +
-  scale_fill_manual(values =  c("springgreen2", "firebrick1"),  aesthetics = c("fill")) +
+  #scale_colour_manual(values =  c("#2eb82e", "brown1")) +
+  #scale_fill_manual(values =  c("springgreen2", "firebrick1"),  aesthetics = c("fill")) +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10))+
   scale_x_date(date_labels = "%d-%b", breaks = scales::pretty_breaks(n = 10)) +
   ylab("Net Goals") +
@@ -651,8 +666,8 @@ dfs %>%
   mutate(pdoc = SH. + SV.)%>%
   ggplot(aes(SH., SV.)) +
   geom_abline(intercept = 1, slope = -1, col = "magenta", lwd = 1.1)+
-  geom_point(shape = 21, size = 9, aes(fill = Result, col = Result)) +
-  gghighlight(Date >= "2020-02-25", use_direct_label = FALSE)+
+  geom_point(shape = 21, size = 9, aes(fill = result, col = result)) +
+  #gghighlight(Date >= "2020-02-25", use_direct_label = FALSE)+
   theme_modern_rc() +
   theme(legend.position = "left") +
   #scale_fill_viridis_d(option = "D", begin = 0.1, end = 0.95) +
@@ -689,7 +704,7 @@ dfs %>%
   #geom_line(stat = "identity", color = "magenta", aes(y= PDO), size = 3, alpha = 0.1) +
   #geom_line(stat = "identity", color = "magenta", aes(y= PDO), size = 2, alpha = 0.2) +
   geom_line(stat = "identity", color = "magenta", aes(y= PDO), size = 0.8, alpha = 0.5) +
-  geom_point(aes(y = PDO, fill = Result), col = "magenta", shape = 21, size = 10) +
+  geom_point(aes(y = PDO, fill = result), col = "magenta", shape = 21, size = 10) +
   #gghighlight(Date >= "2020-02-25", use_direct_label = FALSE)+
   theme_modern_rc(grid = "X,Y,y")+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6))+
@@ -722,7 +737,7 @@ dfs %>%
   ggplot(aes(Gms, SV.)) +
   #geom_line(stat = "identity", color = "#ffffff") +
   geom_hline(yintercept = qksummary$SV., color = "magenta", lwd = 1.1)+
-  geom_point(aes(fill = Result, col = Result), shape = 21, size = 10) +
+  geom_point(aes(fill = result, col = result), shape = 21, size = 10) +
   #gghighlight(Date >= "2020-02-25", use_direct_label = FALSE)+
   theme_modern_rc(grid = "X,Y,y")+
   theme(legend.position = "left")+
@@ -752,10 +767,10 @@ ggsave(
 # Average shots % in results and location ----
 
 dfs %>%
-  mutate(Result = reorder(Result, SH., median)) %>%
+  mutate(result = reorder(result, SH., median)) %>%
   filter(grepl(teamname, name)) %>%
-  select(Team, Result, SH.) %>%
-  ggplot(aes(x = Result, y = SH., fill = Result)) +
+  select(Team, result, SH.) %>%
+  ggplot(aes(x = result, y = SH., fill = result)) +
   geom_boxplot(color = "magenta", fill = teamcolors[idx], notch = F) +
   #geom_violin()+
   theme_modern_rc()+
@@ -773,7 +788,7 @@ ggsave(
 #
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Loc.,SH.)) +
+  ggplot(aes(loc,SH.)) +
   geom_boxplot(color = "magenta", fill = teamcolors[idx]) +
   theme_modern_rc()+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6)) +
@@ -791,11 +806,11 @@ ggsave(
 
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Oppo, SH.)) +
+  ggplot(aes(Oppo, SH., Div.Oppo)) +
   geom_bar(stat = "summary", fun = "mean", color = "magenta", fill = teamcolors[idx]) +
   theme_modern_rc(grid = "Y,y")+
   theme(strip.text = element_text(colour = 'snow1'))+
-  facet_wrap(~Div, scales = "free_x")+
+  facet_wrap(~Div.Oppo, scales = "free_x")+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6)) +
   xlab("Opponent")+
   labs(caption = reference, title = paste0(teamname," SH% for Each Opponent"), subtitle = "2020-21 Regular Season")
@@ -808,10 +823,10 @@ ggsave(
 )
 
 
-# not make sense now
+#
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Div,SH.)) +
+  ggplot(aes(Div.Oppo,SH.)) +
   geom_boxplot(color = "magenta", fill = teamcolors[idx]) +
   theme_modern_rc()+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6)) +
@@ -823,21 +838,8 @@ ggsave(
   height = 6,
   dpi = 320
 )
-#not make sense now
-dfs %>%
-  filter(grepl(teamname, name)) %>%
-  ggplot(aes(Div.Oppo,SH.)) +
-  geom_boxplot(color = "magenta", fill = teamcolors[idx]) +
-  theme_modern_rc()+
-  scale_y_percent(breaks = scales::pretty_breaks(n = 6)) +
-  labs(caption = reference, title = paste0(teamname," SH% Against Conferences"), subtitle = "2020-21 Regular Season")
 
-ggsave(
-   paste0("plots/",teamname,"/shpctodiv", datetoday, ".png"),
-  width = 11,
-  height = 6,
-  dpi = 320
-)
+#
 
 # SV% against opponents
 dfs %>%
@@ -845,9 +847,11 @@ dfs %>%
   ggplot(aes(Oppo, SV.)) +
   geom_boxplot(color = "magenta", fill = teamcolors[idx], notch = F) +
   theme_modern_rc()+
+  theme(strip.text = element_text(colour = 'snow1'))+
+  facet_wrap(~Div.Oppo, scales = "free_x")+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6)) +
   xlab("Opponent")+
-  labs(caption = reference, title = paste0(teamname," SV% Against Conferences"), subtitle = "2020-21 Regular Season")
+  labs(caption = reference, title = paste0(teamname," SV% Against Opponents"), subtitle = "2021-22 Regular Season")
 
 ggsave(
    paste0("plots/",teamname,"/shpcttoconf", datetoday, ".png"),
@@ -855,10 +859,10 @@ ggsave(
   height = 6,
   dpi = 320
 )
-# not make sense now
+#
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Div, SV.)) +
+  ggplot(aes(Div.Oppo, SV.)) +
   geom_boxplot(color = "#00001a", fill = teamcolors[idx]) +
   theme_ipsum_rc()+
   scale_y_percent(breaks = scales::pretty_breaks(n = 6)) +
@@ -873,15 +877,15 @@ ggsave(
 # Save% against each team ----
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  group_by(Oppo) %>%
+  group_by(Oppo, Div.Oppo) %>%
   summarise(sv_mean = mean(SV.)) %>%
   ggplot(aes(Oppo, sv_mean)) +
   #geom_bar(stat = "summary", fun = "mean", color = "magenta", fill = teamcolors[idx], width = 0.8) +
-  geom_bar(stat = "summary", color = "magenta", fill = teamcolors[idx], width = 0.8)+
-  geom_hline(yintercept = qksummary$SV., color = "magenta", lwd = 1.1)+
-  geom_text(size = 4, aes(label = sv_mean), col = "magenta", position = position_dodge(width = -1), vjust = -0.5)+
-  annotate("text", x = 4, y = (qksummary$SV.+ 0.009), label = "League Avg.", col = "magenta")+
-  #facet_wrap(~Div, scales = "free_x") +
+  geom_bar(stat = "summary", fun="mean", color = "magenta", fill = teamcolors[idx], width = 0.8)+
+  #geom_hline(yintercept = qksummary$sv_percent/100, color = "magenta", lwd = 1.1)+
+  geom_text(size = 4, aes(label = round(sv_mean, 3)), col = "magenta", position = position_dodge(width = -1), vjust = 1.5)+
+  #annotate("text", x = 4, y = (qksummary$sv_percent/100+ 0.009), label = "League Avg.", col = "magenta")+
+  facet_wrap(~Div.Oppo, scales = "free_x") +
   theme_modern_rc(grid = "Y,y")+
   theme(strip.text = element_text(colour = 'Grey'))+
   coord_cartesian(ylim = c(0.6, 1))+
@@ -900,7 +904,7 @@ ggsave(
 
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Result,GF, fill= Result)) +
+  ggplot(aes(result, gf, fill= result)) +
   geom_boxplot(color = "magenta")+
   geom_dotplot(binaxis='y', stackdir='center', dotsize=0.8, binwidth = 0.3)+
   theme_modern_rc()+
@@ -920,7 +924,7 @@ ggsave(
 
 dfs %>%
   filter(grepl(teamname, name)) %>%
-  ggplot(aes(Result,GA, fill= Result)) +
+  ggplot(aes(result, ga, fill= result)) +
   geom_boxplot(color = "magenta")+
   geom_dotplot(binaxis='y', stackdir='center', dotsize=0.8, binwidth = 0.3)+
   theme_modern_rc()+
@@ -947,7 +951,7 @@ dfs%>%
   scale_size(breaks = 1:10, name = "Nº of \nOcurrences")+
   theme_modern_rc()+
   theme(strip.text = element_text(colour = 'snow2'))+
-  facet_wrap(~Div, scales = "free_x")+
+  facet_wrap(~Div.Oppo, scales = "free_x")+
   xlab("Opponent")+
   labs(caption = reference, title = paste0(teamname," Distribution of Wins/Losses Across the Division"),
        subtitle = "2020-21 Regular Season")
