@@ -15,7 +15,7 @@ teamcolors <<- c("ANA" = "#111111","ARI" = "#b43143","BOS" = "#c98e03","BUF" = "
                 "CBJ" = "#041e42","DAL" = "#008053","DET" = "#a50d27","EDM" = "#fc4c02","FLA" = "#b9975b",
                 "LAK" = "#a2aaad","MIN" = "#154734","MTL" = "#851425",
                 "NSH" = "#ffb81c","NJD" = "#a50d27","NYI" = "#003087","NYR" = "#0039b3","OTT" = "#c69214",
-                "PHI" = "#fa4616","PIT" = "#ffb81c","SJS" = "#008599",
+                "PHI" = "#fa4616","PIT" = "#ffb81c","SJS" = "#008599", "SEA" = "#99D9D9",
                 "STL" = "#002f87","TBL" = "#002d80","TOR" = "#00205b","VAN" = "#008852","VGK" = "#3f4e5a",
                 "WSH" = "#ec1337","WPG" = "#031630")
 
@@ -25,6 +25,7 @@ nhlteams <<- c("anaheim-ducks","phoenix-coyotes", "boston-bruins", "buffalo-sabr
              "florida-panthers", "los-angeles-kings", "minnesota-wild", "montreal-canadiens",
              "nashville-predators", "new-jersey-devils", "new-york-islanders", "new-york-rangers",
              "ottawa-senators", "philadelphia-flyers", "pittsburgh-penguins", "san-jose-sharks",
+             "seattle-kraken",
              "st-louis-blues", "tampa-bay-lightning", "toronto-maple-leafs", "vancouver-canucks",
              "vegas-golden-knights", "washington-capitals", "winnipeg-jets")
 
